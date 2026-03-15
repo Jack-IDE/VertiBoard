@@ -1,0 +1,3239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VertiBoard - JackIDE</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: #cae1f6;
+            touch-action: none;
+            user-select: none;
+        }
+        canvas { display: block; }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #111;
+            pointer-events: none;
+            z-index: 10;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        }
+        #speed-ui {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: -2px;
+            font-style: italic;
+        }
+        #status-ui {
+            margin-top: 6px;
+            font-size: 0.9rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #ff6a00;
+            min-height: 1.2em;
+        }
+        #air-ui {
+            margin-top: 4px;
+            font-size: 0.78rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #2c4d70;
+            min-height: 1.1em;
+        }
+        #height-ui {
+            margin-top: 2px;
+            font-size: 0.74rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #496f92;
+            min-height: 1.1em;
+        }
+        #menu-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            margin-top: 0;
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            border: 3px solid #111;
+            background: rgba(255,255,255,0.92);
+            color: #111;
+            font-size: 1.5rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+            z-index: 35;
+        }
+        #menu-panel {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            width: min(166px, calc(100vw - 20px));
+            max-height: min(48vh, 320px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 8px;
+            border-radius: 12px;
+            border: 2px solid rgba(0,0,0,0.12);
+            background: rgba(255,255,255,0.72);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+            line-height: 1.25;
+            pointer-events: auto;
+            display: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 34;
+        }
+        #menu-panel.open {
+            display: block;
+        }
+        #menu-title {
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+        #instructions {
+            font-size: 0.65rem;
+            line-height: 1.3;
+            background: rgba(245,248,251,0.92);
+            padding: 9px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        #style-controls {
+            margin-top: 8px;
+            background: rgba(245,248,251,0.92);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 8px 9px;
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin-top: 7px;
+        }
+        .color-row:first-child {
+            margin-top: 0;
+        }
+        .color-row input[type="color"] {
+            width: 42px;
+            height: 26px;
+            padding: 0;
+            border: 2px solid #111;
+            border-radius: 8px;
+            background: transparent;
+        }
+        .menu-select {
+            min-width: 92px;
+            height: 30px;
+            border: 2px solid #111;
+            border-radius: 9px;
+            background: #fff7ea;
+            color: #111;
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            padding: 0 8px;
+        }
+        .tab-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .menu-tab {
+            height: 32px;
+            border: 2px solid #111;
+            border-radius: 10px;
+            background: #eef3f8;
+            color: #111;
+            font-size: 0.66rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+        }
+        .menu-tab.active {
+            background: #ffde88;
+        }
+        .menu-pane {
+            display: none;
+        }
+        .menu-pane.open {
+            display: block;
+        }
+        .menu-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .menu-btn {
+            min-height: 32px;
+            border: 2px solid #111;
+            border-radius: 10px;
+            background: #fff7ea;
+            color: #111;
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            padding: 7px 8px;
+        }
+        .menu-btn.wide {
+            grid-column: 1 / -1;
+        }
+        .menu-btn.active {
+            background: #b8ffcf;
+        }
+        .menu-btn.warn {
+            background: #ffe0b1;
+        }
+        #build-controls {
+            margin-top: 0;
+            background: rgba(245,248,251,0.92);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 8px 9px;
+        }
+        #building-editor {
+            margin-top: 8px;
+            background: rgba(241,246,250,0.94);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 8px 9px;
+        }
+        #building-editor-note,
+        #build-target-readout {
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 1.35;
+            color: #37506a;
+        }
+        #build-target-readout {
+            margin-top: 8px;
+            min-height: 1.2em;
+        }
+        #build-instructions {
+            font-size: 0.65rem;
+            margin-bottom: 8px;
+            line-height: 1.28;
+        }
+        .build-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .asset-btn {
+            min-height: 30px;
+            border: 2px solid #111;
+            border-radius: 10px;
+            background: #eef3f8;
+            color: #111;
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-align: left;
+            padding: 0 10px;
+        }
+        .asset-btn.active {
+            background: #8cf4b1;
+        }
+        #builder-status {
+            margin-top: 8px;
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #2c4d70;
+            min-height: 1.2em;
+        }
+        #build-rot-readout {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .menu-group {
+            margin-top: 6px;
+            background: rgba(245,248,251,0.92);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .menu-group:first-child {
+            margin-top: 0;
+        }
+        .menu-group summary {
+            list-style: none;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding: 8px 9px;
+            font-size: 0.64rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #111;
+            background: rgba(255,255,255,0.34);
+        }
+        .menu-group summary::-webkit-details-marker {
+            display: none;
+        }
+        .menu-group summary::after {
+            content: '+';
+            font-size: 0.92rem;
+            line-height: 1;
+        }
+        .menu-group[open] summary {
+            background: rgba(255,223,143,0.42);
+        }
+        .menu-group[open] summary::after {
+            content: '–';
+        }
+        .menu-group-body {
+            padding: 0 8px 8px;
+            max-height: 34vh;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 820px) {
+            #ui {
+                top: 12px;
+                left: 12px;
+            }
+            #speed-ui {
+                font-size: 1.9rem;
+            }
+            #air-ui {
+                font-size: 0.68rem;
+            }
+            #menu-toggle {
+                top: 8px;
+                right: 8px;
+                width: 42px;
+                height: 42px;
+                border-radius: 11px;
+                font-size: 1.28rem;
+            }
+            #menu-panel {
+                top: 54px;
+                right: 8px;
+                width: min(156px, calc(100vw - 16px));
+                max-height: min(44vh, calc(100vh - 70px));
+                padding: 7px;
+                background: rgba(255,255,255,0.68);
+                border-color: rgba(0,0,0,0.08);
+            }
+            #instructions,
+            #build-instructions,
+            #building-editor-note,
+            #build-target-readout {
+                font-size: 0.62rem;
+            }
+            .menu-tab,
+            .menu-btn,
+            .asset-btn,
+            .menu-select {
+                min-height: 30px;
+                font-size: 0.58rem;
+            }
+            .menu-group summary {
+                font-size: 0.6rem;
+                padding: 7px 8px;
+            }
+            .color-row {
+                gap: 6px;
+                font-size: 0.56rem;
+            }
+            .color-row input[type="color"] {
+                width: 38px;
+                height: 24px;
+            }
+        }
+
+        #btn-jump {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 92px;
+            height: 92px;
+            background: #ffae2b;
+            border: 6px solid #111;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #111;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            z-index: 20;
+            transform: scale(1);
+            transition: transform 0.08s ease;
+        }
+        #btn-jump span {
+            font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+            font-style: italic;
+            font-weight: 900;
+            font-size: 1.18rem;
+            letter-spacing: 0.08em;
+            transform: skew(-8deg);
+            -webkit-text-stroke: 1px rgba(0,0,0,0.15);
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.22);
+        }
+        #btn-jump:active {
+            transform: scale(0.92);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div id="speed-ui">00 KM/H</div>
+        <div id="status-ui"></div>
+        <div id="air-ui">BEST AIR 0.00S</div>
+        <div id="height-ui">TOP HEIGHT 0.0M</div>
+        <button id="menu-toggle" aria-label="Open menu">☰</button>
+        <div id="menu-panel">
+            <div id="menu-title">VertiBoard</div>
+            <div class="tab-row">
+                <button id="tab-game" class="menu-tab active">PLAY</button>
+                <button id="tab-build" class="menu-tab">BUILD</button>
+            </div>
+
+            <div id="pane-game" class="menu-pane open">
+                <details class="menu-group">
+                    <summary>CONTROLS</summary>
+                    <div class="menu-group-body">
+                        <div id="instructions">
+                            <b>RIGHT SIDE:</b> Look around to STEER and flow through turns.<br><br>
+                            <b>LEFT SIDE:</b> Swipe <b>up</b> to PUSH. Hold and drag L/R to CARVE.<br><br>
+                            Quick swipe <b>left/right</b> for a SIDE POP. Side pop near a rail to <b>SNAP INTO A GRIND</b>.<br><br>
+                            Side pop near a wall to do a <b>WALL JUMP / WALL KICK</b>. Buildings use <b>PEGS</b>, roof ledges, and right-angle climb lines so they are always climbable.
+                        </div>
+                    </div>
+                </details>
+                <details class="menu-group">
+                    <summary>STYLE</summary>
+                    <div class="menu-group-body">
+                        <div id="style-controls">
+                            <div class="color-row">
+                                Rider color
+                                <input id="rider-color" type="color" value="#ffffff" />
+                            </div>
+                            <div class="color-row">
+                                Skin tone
+                                <input id="skin-tone" type="color" value="#72ff66" />
+                            </div>
+                            <div class="color-row">
+                                Board color
+                                <input id="board-color" type="color" value="#ff7340" />
+                            </div>
+                            <div class="color-row">
+                                Hat
+                                <select id="hat-select" class="menu-select">
+                                    <option value="none">NONE</option>
+                                    <option value="construction">HARD HAT</option>
+                                    <option value="baseball">BASEBALL</option>
+                                    <option value="cowboy">COWBOY</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <div id="pane-build" class="menu-pane">
+                <details class="menu-group">
+                    <summary>PLACE ASSET</summary>
+                    <div class="menu-group-body">
+                        <div id="build-controls">
+                            <div id="build-instructions">
+                                Pick an asset, size it, rotate it, then <b>DROP IN FRONT</b> or use <b>BUILD MODE</b> to tap-place it.
+                            </div>
+                            <div class="build-grid">
+                                <button class="asset-btn active" data-asset="ramp">BOUNCE PIPE</button>
+                                <button class="asset-btn" data-asset="building">BUILDING</button>
+                                <button class="asset-btn" data-asset="rail">GRIND RAIL</button>
+                            </div>
+                            <div class="color-row">
+                                Rotation
+                                <span id="build-rot-readout">0°</span>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="rotate-left-btn" class="menu-btn">ROTATE -</button>
+                                <button id="rotate-right-btn" class="menu-btn">ROTATE +</button>
+                            </div>
+                            <div class="color-row">
+                                Length
+                                <span id="build-length-readout">35</span>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="length-prev-btn" class="menu-btn">LENGTH -</button>
+                                <button id="length-next-btn" class="menu-btn">LENGTH +</button>
+                            </div>
+                            <div class="color-row">
+                                Height
+                                <span id="build-place-height-readout">18</span>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="place-height-prev-btn" class="menu-btn">HEIGHT -</button>
+                                <button id="place-height-next-btn" class="menu-btn">HEIGHT +</button>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="place-front-btn" class="menu-btn">DROP IN FRONT</button>
+                                <button id="toggle-build-btn" class="menu-btn">BUILD MODE: OFF</button>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="undo-build-btn" class="menu-btn">UNDO</button>
+                                <button id="redo-build-btn" class="menu-btn">REDO</button>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="toggle-freecam-btn" class="menu-btn">FREE CAM: OFF</button>
+                                <button id="focus-camera-btn" class="menu-btn">FOCUS</button>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="zoom-out-btn" class="menu-btn">ZOOM -</button>
+                                <button id="zoom-in-btn" class="menu-btn">ZOOM +</button>
+                            </div>
+                            <div id="builder-status">Build mode OFF</div>
+                        </div>
+                    </div>
+                </details>
+                <details class="menu-group">
+                    <summary>EDIT BUILDING SIDE</summary>
+                    <div class="menu-group-body">
+                        <div id="building-editor">
+                            <div id="building-editor-note">Select a building, choose a face, then place pegs or rails exactly where you want them on that side.</div>
+                            <div class="menu-actions">
+                                <button id="select-nearest-building-btn" class="menu-btn wide">SELECT NEAREST BUILDING</button>
+                            </div>
+                            <div class="color-row">
+                                Face
+                                <span id="build-face-readout">+X</span>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="face-prev-btn" class="menu-btn">FACE -</button>
+                                <button id="face-next-btn" class="menu-btn">FACE +</button>
+                            </div>
+                            <div class="color-row">
+                                Slot
+                                <span id="build-lane-readout">CENTER</span>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="lane-prev-btn" class="menu-btn">SLOT -</button>
+                                <button id="lane-next-btn" class="menu-btn">SLOT +</button>
+                            </div>
+                            <div class="color-row">
+                                Height
+                                <span id="build-height-readout">MID</span>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="height-prev-btn" class="menu-btn">HEIGHT -</button>
+                                <button id="height-next-btn" class="menu-btn">HEIGHT +</button>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="add-peg-btn" class="menu-btn">ADD PEG</button>
+                                <button id="add-horizontal-rail-btn" class="menu-btn">ADD H-RAIL</button>
+                            </div>
+                            <div class="menu-actions">
+                                <button id="add-vertical-rail-btn" class="menu-btn">ADD V-RAIL</button>
+                                <button id="add-climb-set-btn" class="menu-btn active">ADD CLIMB SET</button>
+                            </div>
+                            <div id="build-target-readout">Target: none</div>
+                        </div>
+                    </div>
+                </details>
+                <details class="menu-group">
+                    <summary>MAP</summary>
+                    <div class="menu-group-body">
+                        <div class="menu-actions">
+                            <button id="reset-map-btn-build" class="menu-btn wide warn">RESET + RANDOMIZE</button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <div id="btn-jump"><span>JUMP</span></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+
+    <script>
+        let scene, camera, renderer, player, playerVisuals, raycaster;
+        let walls = [], slopes = [], rails = [], sparks = [], impactFx = [], dustFx = [];
+        let hoodieMesh, boardMesh, headMesh, hatRoot, leftLegMesh, rightLegMesh, playerShadow;
+        let powSpriteMaterial = null, dustSpriteMaterial = null;
+        let recentWallKickAssist = 0;
+
+        const GRIND_GREEN = 0x52d07f;
+        const GRIND_GREEN_DARK = 0x205f44;
+        const GRIND_GREEN_LIGHT = 0x8bf0b1;
+        const RAMP_BODY_COLOR = 0x65707c;
+        const RAMP_BOOST_COLOR = 0xffa341;
+
+        let velocity = new THREE.Vector3();
+        let boardYaw = 0;
+        let camYaw = 0;
+        let camPitch = 0.4;
+        let leanFactor = 0;
+        let turnLean = 0;
+        let lastCamYaw = 0;
+        let pushBoost = 0;
+
+        let jumps = 0;
+        let yVel = 0;
+        let isInAir = false;
+        let isGrinding = false;
+        let activeRail = null;
+        let grindT = 0;
+        let grindDir = 1;
+        let grindSpeed = 0;
+        let grindFxClock = 0;
+        let grindCooldown = 0;
+        let grindMode = 'flat';
+        let trickFlip = 0;
+        let trickSpin = 0;
+        let trickTilt = 0;
+        let trickName = '';
+        let trickTimer = 0;
+        let trickCooldown = 0;
+        let kickAnim = 0;
+        let kickSide = 1;
+        let kickType = '';
+        let airSideActionUsed = false;
+        let wallKickLock = 0;
+        let wasGrounded = true;
+        let airTimeCurrent = 0;
+        let airTimeBest = 0;
+        let topHeightBest = 0;
+
+        let floorMesh, gridHelper, ambientLight, hemiLight, sunLight;
+        const persistentSceneObjects = new Set();
+        let buildMode = false;
+        let buildAssetType = 'ramp';
+        let buildRotation = 0;
+        const buildDimensions = {
+            ramp: { length: 35, height: 18 },
+            building: { length: 20, height: 52 },
+            rail: { length: 18, height: 1.05 }
+        };
+        let buildings = [];
+        let selectedBuilding = null;
+        let selectedBuildFace = 0;
+        let selectedBuildLane = 2;
+        let selectedBuildHeight = 1;
+        let selectedBuildingHelper = null;
+        let selectedPlacementMarker = null;
+        let highlightedBuilding = null;
+        let freeCamEnabled = false;
+        let freeCamDistance = 26;
+        let freeCamTarget = new THREE.Vector3(0, 8, 0);
+        let buildUndoStack = [];
+        let buildRedoStack = [];
+        const BUILD_FACE_NAMES = ['+X', '+Z', '-X', '-Z'];
+        const BUILD_LANE_NAMES = ['EDGE L', 'LEFT', 'CENTER', 'RIGHT', 'EDGE R'];
+        const BUILD_HEIGHT_NAMES = ['LOW', 'MID', 'HIGH', 'TOP'];
+
+        const PUSH_DRIVE = 0.0076;
+        const TOP_SPEED = 0.54;
+        const GRAVITY = -0.012;
+        const ALIGN_SPEED = 0.06;
+        const MAX_LEAN = 0.15;
+        const GRIND_SNAP_DIST = 0.9;
+        const GRIND_HEIGHT_TOLERANCE = 0.72;
+        const SIDE_SNAP_DIST = 1.34;
+        const SIDE_SNAP_HEIGHT = 1.16;
+
+        const touchData = {
+            move: { id: -1, startX: 0, startY: 0, currentX: 0, currentY: 0, lastX: 0, lastY: 0, startTime: 0 },
+            look: { id: -1, lastX: 0, lastY: 0 }
+        };
+        const START_POS = new THREE.Vector3(-92, 1.2, -86);
+        const START_YAW = 0.36;
+
+        function addOutline(mesh, thickness = 0.036, color = 0x050505) {
+            const outline = new THREE.Mesh(
+                mesh.geometry,
+                new THREE.MeshBasicMaterial({ color, side: THREE.BackSide })
+            );
+            outline.scale.multiplyScalar(1 + thickness);
+            mesh.add(outline);
+            return mesh;
+        }
+
+        function makeToonMesh(geometry, color, outline = 0.03) {
+            const mesh = new THREE.Mesh(
+                geometry,
+                new THREE.MeshToonMaterial({ color })
+            );
+            return addOutline(mesh, outline);
+        }
+
+        function makeColliderBox(width, height, depth) {
+            return new THREE.Mesh(
+                new THREE.BoxGeometry(width, height, depth),
+                new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false })
+            );
+        }
+
+        function createGroundTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#e1e7ed';
+            ctx.fillRect(0, 0, 512, 512);
+
+            const wash = ctx.createLinearGradient(0, 0, 0, 512);
+            wash.addColorStop(0, 'rgba(255,255,255,0.16)');
+            wash.addColorStop(0.5, 'rgba(255,255,255,0.03)');
+            wash.addColorStop(1, 'rgba(120,135,150,0.09)');
+            ctx.fillStyle = wash;
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let y = 0; y < 512; y += 32) {
+                ctx.fillStyle = y % 64 === 0 ? 'rgba(92,108,126,0.16)' : 'rgba(255,255,255,0.11)';
+                ctx.fillRect(0, y, 512, y % 128 === 0 ? 5 : 3);
+            }
+
+            for (let y = 0; y < 512; y += 128) {
+                ctx.fillStyle = 'rgba(255,176,74,0.18)';
+                ctx.fillRect(0, y + 10, 512, 8);
+            }
+
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            ctx.fillRect(54, 0, 18, 512);
+            ctx.fillRect(440, 0, 18, 512);
+            ctx.fillRect(236, 0, 40, 512);
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 5;
+            for (let y = -64; y < 576; y += 64) {
+                ctx.beginPath();
+                ctx.moveTo(16, y + 24);
+                ctx.lineTo(86, y - 6);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(426, y - 6);
+                ctx.lineTo(496, y + 24);
+                ctx.stroke();
+            }
+
+            for (let x = 0; x < 512; x += 64) {
+                for (let y = 0; y < 512; y += 64) {
+                    ctx.fillStyle = ((x + y) / 64) % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(88,103,120,0.035)';
+                    ctx.fillRect(x, y, 32, 32);
+                }
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(120, 120);
+            if ('colorSpace' in texture && THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
+            const maxAniso = renderer?.capabilities?.getMaxAnisotropy?.() ?? 1;
+            texture.anisotropy = Math.min(8, maxAniso);
+            return texture;
+        }
+
+        function createGroundMaterial() {
+            return new THREE.MeshToonMaterial({
+                color: 0xe8edf3,
+                map: createGroundTexture()
+            });
+        }
+
+        function getPowSpriteMaterial() {
+            if (powSpriteMaterial) return powSpriteMaterial;
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 256, 256);
+            ctx.translate(128, 128);
+
+            for (let ring = 0; ring < 2; ring++) {
+                ctx.save();
+                ctx.rotate(ring * 0.28 - 0.14);
+                ctx.beginPath();
+                for (let i = 0; i < 14; i++) {
+                    const a = (i / 14) * Math.PI * 2;
+                    const r = i % 2 === 0 ? (ring === 0 ? 102 : 78) : (ring === 0 ? 52 : 38);
+                    const x = Math.cos(a) * r;
+                    const y = Math.sin(a) * r;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = ring === 0 ? '#ff4337' : '#ffcb59';
+                ctx.strokeStyle = '#1a0000';
+                ctx.lineWidth = ring === 0 ? 14 : 10;
+                ctx.globalAlpha = ring === 0 ? 0.96 : 0.88;
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.globalAlpha = 1;
+            for (let i = 0; i < 10; i++) {
+                const a = (i / 10) * Math.PI * 2 + 0.08;
+                const inner = 62 + (i % 2) * 12;
+                const outer = 118 + (i % 3) * 9;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+                ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+                ctx.strokeStyle = i % 2 === 0 ? '#ff2d20' : '#ffd668';
+                ctx.lineWidth = i % 2 === 0 ? 11 : 7;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 26, 0, Math.PI * 2);
+            const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 26);
+            glow.addColorStop(0, 'rgba(255,244,196,0.95)');
+            glow.addColorStop(1, 'rgba(255,125,64,0)');
+            ctx.fillStyle = glow;
+            ctx.fill();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            powSpriteMaterial = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            return powSpriteMaterial;
+        }
+
+        function getDustSpriteMaterial() {
+            if (dustSpriteMaterial) return dustSpriteMaterial;
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const g = ctx.createRadialGradient(64, 64, 12, 64, 64, 56);
+            g.addColorStop(0, 'rgba(240,232,214,0.95)');
+            g.addColorStop(0.35, 'rgba(208,195,171,0.72)');
+            g.addColorStop(1, 'rgba(180,166,145,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(64, 64, 56, 0, Math.PI * 2);
+            ctx.fill();
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            dustSpriteMaterial = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            return dustSpriteMaterial;
+        }
+
+        function spawnWallKickFx(position, normal, direction = 1) {
+            const side = new THREE.Vector3(-normal.z, 0, normal.x).multiplyScalar(direction || 1);
+
+            const pow = new THREE.Sprite(getPowSpriteMaterial().clone());
+            pow.position.copy(position).add(normal.clone().multiplyScalar(0.24)).add(new THREE.Vector3(0, 0.22, 0));
+            pow.scale.set(1.65, 1.65, 1.65);
+            pow.userData.life = 16;
+            pow.userData.vel = normal.clone().multiplyScalar(0.018).add(new THREE.Vector3(0, 0.03, 0));
+            pow.userData.fade = 0.95;
+            scene.add(pow);
+            impactFx.push(pow);
+
+            for (let i = 0; i < 9; i++) {
+                const line = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.08, 0.08, 0.5 + Math.random() * 0.45),
+                    new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xff3b30 : 0xffd14a, transparent: true, opacity: 1 })
+                );
+                const spread = (i - 4) * 0.16;
+                const origin = position.clone()
+                    .add(normal.clone().multiplyScalar(0.28))
+                    .add(side.clone().multiplyScalar(spread * 0.34))
+                    .add(new THREE.Vector3(0, 0.18 + Math.random() * 0.16, 0));
+                const dir = normal.clone().multiplyScalar(0.75)
+                    .add(side.clone().multiplyScalar(spread * 0.6))
+                    .add(new THREE.Vector3(0, 0.28 + Math.random() * 0.22, 0))
+                    .normalize();
+                line.position.copy(origin);
+                line.lookAt(origin.clone().add(dir));
+                line.userData.life = 18 + Math.floor(Math.random() * 6);
+                line.userData.vel = dir.multiplyScalar(0.024 + Math.random() * 0.025);
+                line.userData.fade = 0.93;
+                scene.add(line);
+                impactFx.push(line);
+            }
+
+            const flash = new THREE.Mesh(
+                new THREE.SphereGeometry(0.22, 12, 12),
+                new THREE.MeshBasicMaterial({ color: 0xff5a4f, transparent: true, opacity: 0.8 })
+            );
+            flash.position.copy(position).add(normal.clone().multiplyScalar(0.18)).add(new THREE.Vector3(0, 0.14, 0));
+            flash.scale.set(1.6, 0.65, 1.6);
+            flash.userData.life = 12;
+            flash.userData.vel = normal.clone().multiplyScalar(0.016).add(new THREE.Vector3(0, 0.02, 0));
+            flash.userData.fade = 0.9;
+            scene.add(flash);
+            impactFx.push(flash);
+        }
+
+        function spawnPegSnapFx(position, normal, recentWallKick = false) {
+            const burstColor = recentWallKick ? 0xfff59a : GRIND_GREEN_LIGHT;
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(0.18, recentWallKick ? 0.7 : 0.58, 24),
+                new THREE.MeshBasicMaterial({ color: burstColor, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
+            );
+            ring.position.copy(position).add(normal.clone().multiplyScalar(0.06));
+            ring.lookAt(position.clone().add(normal));
+            ring.userData.life = recentWallKick ? 16 : 14;
+            ring.userData.vel = normal.clone().multiplyScalar(0.012).add(new THREE.Vector3(0, 0.012, 0));
+            ring.userData.fade = 0.92;
+            scene.add(ring);
+            impactFx.push(ring);
+
+            for (let i = 0; i < 10; i++) {
+                const streak = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.06, 0.06, 0.42 + Math.random() * 0.28),
+                    new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? 0xffffff : burstColor, transparent: true, opacity: 1 })
+                );
+                const tangent = new THREE.Vector3((Math.random() - 0.5), 0.08 + Math.random() * 0.5, (Math.random() - 0.5)).normalize();
+                const dir = tangent.add(normal.clone().multiplyScalar(0.45)).normalize();
+                streak.position.copy(position).add(new THREE.Vector3(0, 0.08 + Math.random() * 0.16, 0));
+                streak.lookAt(streak.position.clone().add(dir));
+                streak.userData.life = 12 + Math.floor(Math.random() * 6);
+                streak.userData.vel = dir.multiplyScalar(0.02 + Math.random() * 0.02);
+                streak.userData.fade = 0.92;
+                scene.add(streak);
+                impactFx.push(streak);
+            }
+        }
+
+        function spawnLandingDust(position, intensity = 1) {
+            const count = 7 + Math.floor(Math.min(7, intensity * 3));
+            const burstPos = position.clone().add(new THREE.Vector3(0, 0.12, 0));
+            for (let i = 0; i < count; i++) {
+                const puff = new THREE.Sprite(getDustSpriteMaterial().clone());
+                const angle = (i / count) * Math.PI * 2 + Math.random() * 0.45;
+                const speed = 0.018 + Math.random() * 0.026 + intensity * 0.009;
+                puff.position.copy(burstPos).add(new THREE.Vector3(Math.cos(angle) * 0.12, 0.03 + Math.random() * 0.05, Math.sin(angle) * 0.12));
+                const size = 0.9 + Math.random() * 0.45 + intensity * 0.16;
+                puff.scale.set(size, size, size);
+                puff.userData.life = 24 + Math.floor(Math.random() * 10);
+                puff.userData.vel = new THREE.Vector3(Math.cos(angle) * speed, 0.004 + Math.random() * 0.005, Math.sin(angle) * speed);
+                puff.userData.fade = 0.965;
+                scene.add(puff);
+                dustFx.push(puff);
+            }
+
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(0.24, 0.68 + intensity * 0.18, 24),
+                new THREE.MeshBasicMaterial({ color: 0xd8c29d, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })
+            );
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.copy(position).add(new THREE.Vector3(0, 0.04, 0));
+            ring.userData.life = 14;
+            ring.userData.vel = new THREE.Vector3(0, 0.002, 0);
+            ring.userData.fade = 0.93;
+            scene.add(ring);
+            dustFx.push(ring);
+        }
+
+        function updateFxCollection(collection, gravity = 0) {
+            for (let i = collection.length - 1; i >= 0; i--) {
+                const fx = collection[i];
+                fx.position.add(fx.userData.vel);
+                fx.userData.vel.y += gravity;
+                fx.userData.life -= 1;
+                fx.scale.multiplyScalar(fx.userData.fade || 0.95);
+                if (fx.material && fx.material.opacity !== undefined) fx.material.opacity *= 0.93;
+                if (fx.userData.life <= 0) {
+                    scene.remove(fx);
+                    if (fx.material) fx.material.dispose?.();
+                    if (fx.geometry) fx.geometry.dispose?.();
+                    collection.splice(i, 1);
+                }
+            }
+        }
+
+        function updateImpactFx() {
+            updateFxCollection(impactFx, -0.0006);
+        }
+
+        function updateDustFx() {
+            updateFxCollection(dustFx, -0.00018);
+        }
+
+        function setRiderColor(colorValue) {
+            if (hoodieMesh) hoodieMesh.material.color.set(colorValue);
+            if (leftLegMesh) leftLegMesh.material.color.set(colorValue);
+            if (rightLegMesh) rightLegMesh.material.color.set(colorValue);
+            try { localStorage.setItem('skate_rider_color_v3', colorValue); } catch (e) {}
+            const input = document.getElementById('rider-color');
+            if (input && input.value !== colorValue) input.value = colorValue;
+        }
+
+        function setSkinTone(colorValue) {
+            if (headMesh) headMesh.material.color.set(colorValue);
+            try { localStorage.setItem('skate_skin_tone_v1', colorValue); } catch (e) {}
+            const input = document.getElementById('skin-tone');
+            if (input && input.value !== colorValue) input.value = colorValue;
+        }
+
+        function setBoardColor(colorValue) {
+            if (boardMesh) boardMesh.material.color.set(colorValue);
+            try { localStorage.setItem('skate_board_color_v3', colorValue); } catch (e) {}
+            const input = document.getElementById('board-color');
+            if (input && input.value !== colorValue) input.value = colorValue;
+        }
+
+        function makeHatPiece(geometry, color, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, outline = 0.032) {
+            const mesh = makeToonMesh(geometry, color, outline);
+            mesh.position.set(x, y, z);
+            mesh.rotation.set(rx, ry, rz);
+            return mesh;
+        }
+
+        function clearHat() {
+            if (!hatRoot) return;
+            while (hatRoot.children.length) hatRoot.remove(hatRoot.children[0]);
+        }
+
+        function setHatType(type) {
+            clearHat();
+            if (!hatRoot || type === 'none') {
+                try { localStorage.setItem('skate_hat_type_v1', type); } catch (e) {}
+                const input = document.getElementById('hat-select');
+                if (input && input.value !== type) input.value = type;
+                return;
+            }
+
+            if (type === 'construction') {
+                hatRoot.add(makeHatPiece(new THREE.CylinderGeometry(0.23, 0.25, 0.17, 18), 0xffc533, 0, 0.02, 0));
+                hatRoot.add(makeHatPiece(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 18), 0xffb11d, 0, -0.045, 0));
+                hatRoot.add(makeHatPiece(new THREE.BoxGeometry(0.18, 0.03, 0.07), 0xf7e08c, 0, 0.05, 0.18, 0, 0, 0.12));
+            } else if (type === 'baseball') {
+                hatRoot.add(makeHatPiece(new THREE.SphereGeometry(0.23, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.58), 0xd84343, 0, 0.0, 0, 0.12, 0, 0));
+                hatRoot.add(makeHatPiece(new THREE.BoxGeometry(0.22, 0.03, 0.16), 0xc53434, 0, -0.03, 0.2, -0.28, 0, 0));
+                hatRoot.add(makeHatPiece(new THREE.BoxGeometry(0.03, 0.06, 0.03), 0xffffff, 0, 0.11, -0.02));
+            } else if (type === 'cowboy') {
+                hatRoot.add(makeHatPiece(new THREE.CylinderGeometry(0.12, 0.15, 0.28, 16), 0x8d5b34, 0, 0.06, 0));
+                hatRoot.add(makeHatPiece(new THREE.CylinderGeometry(0.34, 0.27, 0.035, 18), 0x6f431f, 0, -0.05, 0));
+                hatRoot.add(makeHatPiece(new THREE.TorusGeometry(0.135, 0.018, 8, 18), 0xd2a662, 0, -0.005, 0, Math.PI / 2, 0, 0));
+            }
+
+            try { localStorage.setItem('skate_hat_type_v1', type); } catch (e) {}
+            const input = document.getElementById('hat-select');
+            if (input && input.value !== type) input.value = type;
+        }
+
+        function setupStyleControls() {
+            const riderInput = document.getElementById('rider-color');
+            const skinToneInput = document.getElementById('skin-tone');
+            const boardInput = document.getElementById('board-color');
+            const hatSelect = document.getElementById('hat-select');
+            if (!riderInput || !skinToneInput || !boardInput || !hatSelect) return;
+            const defaultAlienSkin = '#72ff66';
+            let savedRider = '#ffffff';
+            let savedSkinTone = defaultAlienSkin;
+            let savedBoard = '#ff7340';
+            let savedHat = 'construction';
+            try {
+                savedRider = localStorage.getItem('skate_rider_color_v3') || '#ffffff';
+                savedSkinTone = (localStorage.getItem('skate_skin_tone_v1') || defaultAlienSkin).toLowerCase();
+                savedBoard = localStorage.getItem('skate_board_color_v3') || '#ff7340';
+                savedHat = localStorage.getItem('skate_hat_type_v1') || 'construction';
+            } catch (e) {}
+            if (savedSkinTone === '#f1d2bd' || savedSkinTone === '#ffffff') {
+                savedSkinTone = defaultAlienSkin;
+            }
+            riderInput.value = savedRider;
+            skinToneInput.value = savedSkinTone;
+            boardInput.value = savedBoard;
+            hatSelect.value = savedHat;
+            riderInput.addEventListener('input', e => setRiderColor(e.target.value));
+            skinToneInput.addEventListener('input', e => setSkinTone(e.target.value));
+            boardInput.addEventListener('input', e => setBoardColor(e.target.value));
+            hatSelect.addEventListener('change', e => setHatType(e.target.value));
+            setRiderColor(savedRider);
+            setSkinTone(savedSkinTone);
+            setBoardColor(savedBoard);
+            setHatType(savedHat);
+        }
+
+
+
+        function removeItemsFromArray(arr, items) {
+            if (!arr || !items || !items.length) return;
+            for (let i = arr.length - 1; i >= 0; i--) {
+                if (items.includes(arr[i])) arr.splice(i, 1);
+            }
+        }
+
+        function clearBuildHistory() {
+            buildUndoStack = [];
+            buildRedoStack = [];
+        }
+
+        function runSceneMutation(mutator) {
+            const beforeScene = new Set(scene.children);
+            const beforeWalls = new Set(walls);
+            const beforeSlopes = new Set(slopes);
+            const beforeRails = new Set(rails);
+            const beforeBuildings = new Set(buildings);
+            const previousSelection = selectedBuilding;
+            const result = mutator?.();
+
+            return {
+                previousSelection,
+                nextSelection: selectedBuilding,
+                sceneAdded: scene.children.filter(obj => !beforeScene.has(obj)),
+                wallsAdded: walls.filter(obj => !beforeWalls.has(obj)),
+                slopesAdded: slopes.filter(obj => !beforeSlopes.has(obj)),
+                railsAdded: rails.filter(obj => !beforeRails.has(obj)),
+                buildingsAdded: buildings.filter(obj => !beforeBuildings.has(obj)),
+                result
+            };
+        }
+
+        function removeBuildMutation(capture) {
+            if (!capture) return;
+            removeItemsFromArray(walls, capture.wallsAdded || []);
+            removeItemsFromArray(slopes, capture.slopesAdded || []);
+            removeItemsFromArray(rails, capture.railsAdded || []);
+            removeItemsFromArray(buildings, capture.buildingsAdded || []);
+
+            const sceneRoots = [...new Set((capture.sceneAdded || []).filter(Boolean))];
+            for (const obj of sceneRoots) {
+                if (obj.parent === scene) {
+                    scene.remove(obj);
+                    disposeSceneObject(obj);
+                }
+            }
+
+            if (selectedBuilding && (!selectedBuilding.parent || !buildings.includes(selectedBuilding))) {
+                selectedBuilding = null;
+            }
+            if (capture.previousSelection && capture.previousSelection.parent && buildings.includes(capture.previousSelection)) {
+                selectedBuilding = capture.previousSelection;
+            }
+
+            syncBuildingHighlight();
+            updateBuilderUi('Undo complete');
+        }
+
+        function performBuildHistoryAction(action) {
+            if (!action || typeof action.run !== 'function') return false;
+            const capture = runSceneMutation(() => action.run());
+            const changed = capture.sceneAdded.length || capture.railsAdded.length || capture.wallsAdded.length || capture.slopesAdded.length || capture.buildingsAdded.length;
+            if (!changed) {
+                updateBuilderUi('Nothing changed');
+                return false;
+            }
+            action.capture = capture;
+            buildUndoStack.push(action);
+            buildRedoStack = [];
+            updateBuilderUi(action.label || 'Build action saved');
+            return true;
+        }
+
+        function undoBuildAction() {
+            const action = buildUndoStack.pop();
+            if (!action) {
+                updateBuilderUi('Nothing to undo');
+                return;
+            }
+            removeBuildMutation(action.capture);
+            buildRedoStack.push(action);
+            updateBuilderUi('Undo complete');
+        }
+
+        function redoBuildAction() {
+            const action = buildRedoStack.pop();
+            if (!action) {
+                updateBuilderUi('Nothing to redo');
+                return;
+            }
+            const capture = runSceneMutation(() => action.run());
+            const changed = capture.sceneAdded.length || capture.railsAdded.length || capture.wallsAdded.length || capture.slopesAdded.length || capture.buildingsAdded.length;
+            if (!changed) {
+                updateBuilderUi('Redo skipped');
+                return;
+            }
+            action.capture = capture;
+            buildUndoStack.push(action);
+            updateBuilderUi('Redo complete');
+        }
+
+        function focusFreeCamOn(target) {
+            if (!target) return;
+            freeCamTarget.copy(target);
+        }
+
+        function setFreeCam(enabled) {
+            freeCamEnabled = !!enabled;
+            if (freeCamEnabled) {
+                const focusTarget = selectedBuilding && selectedBuilding.parent
+                    ? selectedBuilding.position.clone().add(new THREE.Vector3(0, (selectedBuilding.userData?.buildingSpec?.height || 20) * 0.22, 0))
+                    : player.position.clone().add(new THREE.Vector3(0, 3.6, 0));
+                focusFreeCamOn(focusTarget);
+                freeCamDistance = THREE.MathUtils.clamp(freeCamDistance, 10, 70);
+            }
+            updateBuilderUi(freeCamEnabled ? 'Free cam ON' : 'Free cam OFF');
+        }
+
+        function nudgeFreeCamPan(dx, dy) {
+            const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw)).normalize();
+            const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw)).normalize();
+            freeCamTarget.addScaledVector(right, -dx * 0.11);
+            freeCamTarget.addScaledVector(forward, dy * 0.11);
+            freeCamTarget.y = THREE.MathUtils.clamp(freeCamTarget.y, 2, 120);
+        }
+
+        function zoomFreeCam(delta) {
+            freeCamDistance = THREE.MathUtils.clamp(freeCamDistance + delta, 10, 70);
+            updateBuilderUi('Camera zoom adjusted');
+        }
+
+        function performPlaceBuildAsset(point) {
+            const assetType = buildAssetType;
+            const rotation = buildRotation;
+            const dims = { ...getActiveBuildDimensions() };
+            return performBuildHistoryAction({
+                label: `${assetType.toUpperCase()} placed`,
+                run: () => {
+                    buildAssetType = assetType;
+                    buildRotation = rotation;
+                    Object.assign(buildDimensions[assetType], dims);
+                    placeBuildAssetAt(point.clone ? point.clone() : point);
+                }
+            });
+        }
+
+        function performAddFeatureToSelectedBuilding(type) {
+            const target = selectedBuilding || selectNearestBuilding();
+            if (!target || !target.parent) {
+                updateBuilderUi('No building selected');
+                return false;
+            }
+            const face = selectedBuildFace;
+            const lane = selectedBuildLane;
+            const height = selectedBuildHeight;
+            return performBuildHistoryAction({
+                label: `${type.toUpperCase()} added`,
+                run: () => {
+                    if (!target.parent) return;
+                    selectedBuilding = target;
+                    selectedBuildFace = face;
+                    selectedBuildLane = lane;
+                    selectedBuildHeight = height;
+                    addFeatureToSelectedBuilding(type);
+                }
+            });
+        }
+
+        function setupMenu() {
+            const toggle = document.getElementById('menu-toggle');
+            const panel = document.getElementById('menu-panel');
+            if (!toggle || !panel) return;
+
+            const gameTab = document.getElementById('tab-game');
+            const buildTab = document.getElementById('tab-build');
+            const paneGame = document.getElementById('pane-game');
+            const paneBuild = document.getElementById('pane-build');
+            const resetBtns = [document.getElementById('reset-map-btn-build')].filter(Boolean);
+            const rotateLeftBtn = document.getElementById('rotate-left-btn');
+            const rotateRightBtn = document.getElementById('rotate-right-btn');
+            const placeFrontBtn = document.getElementById('place-front-btn');
+            const toggleBuildBtn = document.getElementById('toggle-build-btn');
+            const undoBuildBtn = document.getElementById('undo-build-btn');
+            const redoBuildBtn = document.getElementById('redo-build-btn');
+            const toggleFreeCamBtn = document.getElementById('toggle-freecam-btn');
+            const focusCameraBtn = document.getElementById('focus-camera-btn');
+            const zoomOutBtn = document.getElementById('zoom-out-btn');
+            const zoomInBtn = document.getElementById('zoom-in-btn');
+            const selectNearestBuildingBtn = document.getElementById('select-nearest-building-btn');
+            const lengthPrevBtn = document.getElementById('length-prev-btn');
+            const lengthNextBtn = document.getElementById('length-next-btn');
+            const placeHeightPrevBtn = document.getElementById('place-height-prev-btn');
+            const placeHeightNextBtn = document.getElementById('place-height-next-btn');
+            const facePrevBtn = document.getElementById('face-prev-btn');
+            const faceNextBtn = document.getElementById('face-next-btn');
+            const lanePrevBtn = document.getElementById('lane-prev-btn');
+            const laneNextBtn = document.getElementById('lane-next-btn');
+            const heightPrevBtn = document.getElementById('height-prev-btn');
+            const heightNextBtn = document.getElementById('height-next-btn');
+            const addPegBtn = document.getElementById('add-peg-btn');
+            const addHorizontalRailBtn = document.getElementById('add-horizontal-rail-btn');
+            const addVerticalRailBtn = document.getElementById('add-vertical-rail-btn');
+            const addClimbSetBtn = document.getElementById('add-climb-set-btn');
+
+            const switchTab = tab => {
+                const buildActive = tab === 'build';
+                gameTab?.classList.toggle('active', !buildActive);
+                buildTab?.classList.toggle('active', buildActive);
+                paneGame?.classList.toggle('open', !buildActive);
+                paneBuild?.classList.toggle('open', buildActive);
+            };
+
+            const setOpen = open => {
+                panel.classList.toggle('open', open);
+                toggle.innerText = open ? '✕' : '☰';
+                toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+            };
+
+            setOpen(false);
+            switchTab('game');
+            updateBuilderUi();
+
+            const toggleMenu = event => {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                setOpen(!panel.classList.contains('open'));
+            };
+
+            toggle.addEventListener('click', toggleMenu);
+            toggle.addEventListener('touchstart', toggleMenu, { passive: false });
+
+            gameTab?.addEventListener('click', () => switchTab('game'));
+            buildTab?.addEventListener('click', () => switchTab('build'));
+            gameTab?.addEventListener('touchstart', e => { e.preventDefault(); switchTab('game'); }, { passive: false });
+            buildTab?.addEventListener('touchstart', e => { e.preventDefault(); switchTab('build'); }, { passive: false });
+
+            resetBtns.forEach(btn => {
+                btn.addEventListener('click', resetWorldRandomized);
+                btn.addEventListener('touchstart', e => { e.preventDefault(); resetWorldRandomized(); }, { passive: false });
+            });
+
+            rotateLeftBtn?.addEventListener('click', () => { buildRotation -= Math.PI / 8; updateBuilderUi('Rotation adjusted'); });
+            rotateRightBtn?.addEventListener('click', () => { buildRotation += Math.PI / 8; updateBuilderUi('Rotation adjusted'); });
+            rotateLeftBtn?.addEventListener('touchstart', e => { e.preventDefault(); buildRotation -= Math.PI / 8; updateBuilderUi('Rotation adjusted'); }, { passive: false });
+            rotateRightBtn?.addEventListener('touchstart', e => { e.preventDefault(); buildRotation += Math.PI / 8; updateBuilderUi('Rotation adjusted'); }, { passive: false });
+            const changeBuildLength = delta => adjustBuildDimension('length', delta);
+            const changeBuildPlaceHeight = delta => adjustBuildDimension('height', delta);
+            lengthPrevBtn?.addEventListener('click', () => changeBuildLength(-1));
+            lengthNextBtn?.addEventListener('click', () => changeBuildLength(1));
+            placeHeightPrevBtn?.addEventListener('click', () => changeBuildPlaceHeight(-1));
+            placeHeightNextBtn?.addEventListener('click', () => changeBuildPlaceHeight(1));
+            lengthPrevBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeBuildLength(-1); }, { passive: false });
+            lengthNextBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeBuildLength(1); }, { passive: false });
+            placeHeightPrevBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeBuildPlaceHeight(-1); }, { passive: false });
+            placeHeightNextBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeBuildPlaceHeight(1); }, { passive: false });
+
+            document.querySelectorAll('.asset-btn').forEach(btn => {
+                const select = () => { buildAssetType = btn.dataset.asset || 'ramp'; updateBuilderUi(`${btn.textContent.trim()} selected`); };
+                btn.addEventListener('click', select);
+                btn.addEventListener('touchstart', e => { e.preventDefault(); select(); }, { passive: false });
+            });
+
+            const doPlaceFront = event => {
+                if (event) event.preventDefault();
+                performPlaceBuildAsset(getPlacementPointInFront());
+            };
+            placeFrontBtn?.addEventListener('click', doPlaceFront);
+            placeFrontBtn?.addEventListener('touchstart', doPlaceFront, { passive: false });
+
+            const doToggleBuild = event => {
+                if (event) event.preventDefault();
+                setBuildMode(!buildMode);
+            };
+            toggleBuildBtn?.addEventListener('click', doToggleBuild);
+            toggleBuildBtn?.addEventListener('touchstart', doToggleBuild, { passive: false });
+
+            const doSelectNearest = event => {
+                if (event) event.preventDefault();
+                const picked = selectNearestBuilding();
+                if (freeCamEnabled && picked && picked.parent) {
+                    focusFreeCamOn(picked.position.clone().add(new THREE.Vector3(0, (picked.userData?.buildingSpec?.height || 20) * 0.22, 0)));
+                    updateBuilderUi('Building focused');
+                }
+            };
+            selectNearestBuildingBtn?.addEventListener('click', doSelectNearest);
+            selectNearestBuildingBtn?.addEventListener('touchstart', doSelectNearest, { passive: false });
+
+            const changeFace = delta => {
+                selectedBuildFace = (selectedBuildFace + delta + BUILD_FACE_NAMES.length) % BUILD_FACE_NAMES.length;
+                updateBuilderUi('Editing building face');
+            };
+            const changeLane = delta => {
+                selectedBuildLane = (selectedBuildLane + delta + BUILD_LANE_NAMES.length) % BUILD_LANE_NAMES.length;
+                updateBuilderUi('Placement slot changed');
+            };
+            const changeHeight = delta => {
+                selectedBuildHeight = (selectedBuildHeight + delta + BUILD_HEIGHT_NAMES.length) % BUILD_HEIGHT_NAMES.length;
+                updateBuilderUi('Placement height changed');
+            };
+            facePrevBtn?.addEventListener('click', () => changeFace(-1));
+            faceNextBtn?.addEventListener('click', () => changeFace(1));
+            facePrevBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeFace(-1); }, { passive: false });
+            faceNextBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeFace(1); }, { passive: false });
+            lanePrevBtn?.addEventListener('click', () => changeLane(-1));
+            laneNextBtn?.addEventListener('click', () => changeLane(1));
+            lanePrevBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeLane(-1); }, { passive: false });
+            laneNextBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeLane(1); }, { passive: false });
+            heightPrevBtn?.addEventListener('click', () => changeHeight(-1));
+            heightNextBtn?.addEventListener('click', () => changeHeight(1));
+            heightPrevBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeHeight(-1); }, { passive: false });
+            heightNextBtn?.addEventListener('touchstart', e => { e.preventDefault(); changeHeight(1); }, { passive: false });
+
+            const bindFeatureButton = (btn, type) => {
+                if (!btn) return;
+                const run = event => {
+                    if (event) event.preventDefault();
+                    performAddFeatureToSelectedBuilding(type);
+                };
+                btn.addEventListener('click', run);
+                btn.addEventListener('touchstart', run, { passive: false });
+            };
+            bindFeatureButton(addPegBtn, 'peg');
+            bindFeatureButton(addHorizontalRailBtn, 'horizontal');
+            bindFeatureButton(addVerticalRailBtn, 'vertical');
+            bindFeatureButton(addClimbSetBtn, 'combo');
+
+            const doUndo = event => {
+                if (event) event.preventDefault();
+                undoBuildAction();
+            };
+            const doRedo = event => {
+                if (event) event.preventDefault();
+                redoBuildAction();
+            };
+            const doToggleFreeCam = event => {
+                if (event) event.preventDefault();
+                setFreeCam(!freeCamEnabled);
+            };
+            const doFocusCamera = event => {
+                if (event) event.preventDefault();
+                const target = selectedBuilding && selectedBuilding.parent
+                    ? selectedBuilding.position.clone().add(new THREE.Vector3(0, (selectedBuilding.userData?.buildingSpec?.height || 20) * 0.22, 0))
+                    : player.position.clone().add(new THREE.Vector3(0, 3.6, 0));
+                focusFreeCamOn(target);
+                updateBuilderUi('Camera focused');
+            };
+            const doZoomOut = event => {
+                if (event) event.preventDefault();
+                zoomFreeCam(4);
+            };
+            const doZoomIn = event => {
+                if (event) event.preventDefault();
+                zoomFreeCam(-4);
+            };
+            undoBuildBtn?.addEventListener('click', doUndo);
+            redoBuildBtn?.addEventListener('click', doRedo);
+            toggleFreeCamBtn?.addEventListener('click', doToggleFreeCam);
+            focusCameraBtn?.addEventListener('click', doFocusCamera);
+            zoomOutBtn?.addEventListener('click', doZoomOut);
+            zoomInBtn?.addEventListener('click', doZoomIn);
+            undoBuildBtn?.addEventListener('touchstart', doUndo, { passive: false });
+            redoBuildBtn?.addEventListener('touchstart', doRedo, { passive: false });
+            toggleFreeCamBtn?.addEventListener('touchstart', doToggleFreeCam, { passive: false });
+            focusCameraBtn?.addEventListener('touchstart', doFocusCamera, { passive: false });
+            zoomOutBtn?.addEventListener('touchstart', doZoomOut, { passive: false });
+            zoomInBtn?.addEventListener('touchstart', doZoomIn, { passive: false });
+
+            panel.addEventListener('touchstart', event => event.stopPropagation(), { passive: true });
+            panel.addEventListener('click', event => event.stopPropagation());
+
+            document.addEventListener('click', event => {
+                if (!panel.classList.contains('open')) return;
+                if (toggle.contains(event.target) || panel.contains(event.target)) return;
+                setOpen(false);
+            });
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xddeeff);
+            scene.fog = new THREE.Fog(0xddeeff, 110, 460);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            raycaster = new THREE.Raycaster();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.92);
+            scene.add(ambientLight);
+            persistentSceneObjects.add(ambientLight);
+
+            hemiLight = new THREE.HemisphereLight(0xeaf6ff, 0xd2d6dd, 0.5);
+            scene.add(hemiLight);
+            persistentSceneObjects.add(hemiLight);
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            sunLight.position.set(50, 100, 40);
+            scene.add(sunLight);
+            persistentSceneObjects.add(sunLight);
+
+            floorMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(3000, 3000),
+                createGroundMaterial()
+            );
+            floorMesh.rotation.x = -Math.PI / 2;
+            scene.add(floorMesh);
+            slopes.push(floorMesh);
+            persistentSceneObjects.add(floorMesh);
+
+            gridHelper = new THREE.GridHelper(3000, 300, 0xaab4c0, 0xcfd7e1);
+            gridHelper.position.y = 0.03;
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.34;
+            scene.add(gridHelper);
+            persistentSceneObjects.add(gridHelper);
+
+            buildPlayer();
+            buildWorld();
+            setupGestures();
+            setupStyleControls();
+            setupMenu();
+            animate();
+        }
+
+
+        function clampBuildDimensions(asset = buildAssetType) {
+            const dims = buildDimensions[asset];
+            if (!dims) return;
+            if (asset === 'ramp') {
+                dims.length = THREE.MathUtils.clamp(dims.length, 18, 62);
+                dims.height = THREE.MathUtils.clamp(dims.height, 10, 34);
+            } else if (asset === 'building') {
+                dims.length = THREE.MathUtils.clamp(dims.length, 12, 54);
+                dims.height = THREE.MathUtils.clamp(dims.height, 18, 130);
+            } else {
+                dims.length = THREE.MathUtils.clamp(dims.length, 8, 40);
+                dims.height = THREE.MathUtils.clamp(dims.height, 0.7, 4.8);
+            }
+        }
+
+        function getActiveBuildDimensions() {
+            clampBuildDimensions(buildAssetType);
+            return buildDimensions[buildAssetType] || { length: 20, height: 20 };
+        }
+
+        function formatBuildDimension(value, asset, kind) {
+            if (asset === 'rail' && kind === 'height') return value.toFixed(2);
+            if (asset === 'rail' && kind === 'length') return value.toFixed(1).replace(/\.0$/, '');
+            return `${Math.round(value)}`;
+        }
+
+        function adjustBuildDimension(kind, delta) {
+            const dims = getActiveBuildDimensions();
+            const step = buildAssetType === 'rail'
+                ? (kind === 'height' ? 0.18 : 1.5)
+                : (buildAssetType === 'ramp' ? (kind === 'height' ? 2 : 3) : (kind === 'height' ? 6 : 2));
+            dims[kind] += delta * step;
+            clampBuildDimensions(buildAssetType);
+            updateBuilderUi(kind === 'length' ? 'Build length changed' : 'Build height changed');
+        }
+
+        function buildPlayer() {
+            player = new THREE.Group();
+            playerVisuals = new THREE.Group();
+            player.add(playerVisuals);
+
+            boardMesh = makeToonMesh(new THREE.BoxGeometry(0.8, 0.15, 2.3), 0xffffff, 0.05);
+            boardMesh.position.y = 0.2;
+            playerVisuals.add(boardMesh);
+
+            leftLegMesh = makeToonMesh(new THREE.BoxGeometry(0.18, 0.7, 0.2), 0xffffff, 0.042);
+            leftLegMesh.position.set(-0.16, 0.66, -0.06);
+            playerVisuals.add(leftLegMesh);
+
+            rightLegMesh = makeToonMesh(new THREE.BoxGeometry(0.18, 0.7, 0.2), 0xffffff, 0.042);
+            rightLegMesh.position.set(0.16, 0.66, 0.06);
+            playerVisuals.add(rightLegMesh);
+
+            hoodieMesh = makeToonMesh(new THREE.BoxGeometry(0.6, 1.3, 0.4), 0xffffff, 0.052);
+            hoodieMesh.position.y = 1.0;
+            playerVisuals.add(hoodieMesh);
+
+            headMesh = makeToonMesh(new THREE.SphereGeometry(0.22, 16, 16), 0xf1d2bd, 0.044);
+            headMesh.position.set(0, 1.86, 0);
+            playerVisuals.add(headMesh);
+
+            hatRoot = new THREE.Group();
+            hatRoot.position.set(0, 2.02, 0);
+            playerVisuals.add(hatRoot);
+
+            playerShadow = new THREE.Mesh(
+                new THREE.CircleGeometry(1.05, 24),
+                new THREE.MeshBasicMaterial({
+                    color: 0x000000,
+                    transparent: true,
+                    opacity: 0.24,
+                    depthWrite: false
+                })
+            );
+            playerShadow.rotation.x = -Math.PI * 0.5;
+            playerShadow.position.set(0, 0.05, 0);
+            playerShadow.renderOrder = 1;
+            scene.add(playerShadow);
+            persistentSceneObjects.add(playerShadow);
+
+            scene.add(player);
+            persistentSceneObjects.add(player);
+        }
+
+        function createRamp(x, z, rot, options = {}) {
+            const shape = new THREE.Shape();
+            shape.moveTo(0, 0);
+            shape.quadraticCurveTo(0, 18, 18, 18);
+            shape.lineTo(35, 18);
+            shape.lineTo(35, 0);
+            shape.lineTo(0, 0);
+
+            const geo = new THREE.ExtrudeGeometry(shape, { depth: 30, bevelEnabled: false });
+            const ramp = makeToonMesh(geo, RAMP_BODY_COLOR, 0.024);
+            ramp.position.set(x, 0, z);
+            ramp.rotation.y = rot;
+            const lengthScale = THREE.MathUtils.clamp((options.length ?? 35) / 35, 0.55, 1.8);
+            const heightScale = THREE.MathUtils.clamp((options.height ?? 18) / 18, 0.55, 1.9);
+            const depthScale = THREE.MathUtils.clamp((options.depth ?? (options.length ?? 35) * 0.86) / 30, 0.55, 1.9);
+            ramp.scale.set(lengthScale, heightScale, depthScale);
+            ramp.userData.buildSpec = { length: (options.length ?? 35), height: (options.height ?? 18) };
+            scene.add(ramp);
+            slopes.push(ramp);
+
+            const boostShape = new THREE.Shape();
+            boostShape.moveTo(0.18, 0.18);
+            boostShape.quadraticCurveTo(0.18, 16.4, 15.2, 16.4);
+            boostShape.lineTo(17.2, 16.4);
+            boostShape.lineTo(17.2, 0.18);
+            boostShape.lineTo(0.18, 0.18);
+            const boostGeo = new THREE.ExtrudeGeometry(boostShape, { depth: 30.04, bevelEnabled: false });
+            const boostFace = makeToonMesh(boostGeo, RAMP_BOOST_COLOR, 0.018);
+            boostFace.position.set(0.08, 0.14, -0.02);
+            ramp.add(boostFace);
+
+            const edgeStripL = makeToonMesh(new THREE.BoxGeometry(18.2, 0.26, 0.28), GRIND_GREEN, 0.016);
+            edgeStripL.position.set(26.2, 18.02, 0.28);
+            ramp.add(edgeStripL);
+            const edgeStripR = makeToonMesh(new THREE.BoxGeometry(18.2, 0.26, 0.28), GRIND_GREEN, 0.016);
+            edgeStripR.position.set(26.2, 18.02, 29.72);
+            ramp.add(edgeStripR);
+            const deckStrip = makeToonMesh(new THREE.BoxGeometry(15.4, 0.26, 30.1), 0x2a313b, 0.016);
+            deckStrip.position.set(27.4, 18.02, 15);
+            ramp.add(deckStrip);
+
+            addRampLedges(ramp);
+            createRampBlockers(ramp);
+            return ramp;
+        }
+
+        function createRampBlockers(ramp) {
+            const sideHeight = 9.6;
+            const sideZ = [-0.75, 30.75];
+            for (const z of sideZ) {
+                const blocker = makeColliderBox(36.6, sideHeight, 1.7);
+                blocker.position.set(17.7, sideHeight * 0.5, z);
+                ramp.add(blocker);
+                blocker.updateMatrixWorld(true);
+                walls.push(blocker);
+            }
+
+            const backBlocker = makeColliderBox(1.75, 9.8, 31.6);
+            backBlocker.position.set(35.8, 4.9, 15);
+            ramp.add(backBlocker);
+            backBlocker.updateMatrixWorld(true);
+            walls.push(backBlocker);
+
+            const lipL = makeColliderBox(1.2, 5.0, 1.2);
+            lipL.position.set(18.2, 2.5, 0.1);
+            ramp.add(lipL);
+            lipL.updateMatrixWorld(true);
+            walls.push(lipL);
+
+            const lipR = makeColliderBox(1.2, 5.0, 1.2);
+            lipR.position.set(18.2, 2.5, 29.9);
+            ramp.add(lipR);
+            lipR.updateMatrixWorld(true);
+            walls.push(lipR);
+        }
+
+        function createGrindLine(start, end, options = {}) {
+            const kind = options.kind || 'ledge';
+            const normal = options.normal ? options.normal.clone().normalize() : null;
+            const thickness = options.thickness || (kind === 'ledge' ? 0.12 : 0.09);
+            const color = options.color || GRIND_GREEN;
+            const visible = options.visible !== false;
+
+            const dir = end.clone().sub(start);
+            const length = dir.length();
+            if (length < 0.01) return null;
+            const mid = start.clone().add(end).multiplyScalar(0.5);
+            const dirNorm = dir.clone().normalize();
+
+            let mesh = null;
+            if (visible) {
+                mesh = makeToonMesh(new THREE.BoxGeometry(thickness, thickness, length), color, 0.018);
+                mesh.position.copy(mid);
+                const yaw = Math.atan2(dirNorm.x, dirNorm.z);
+                const pitch = Math.asin(THREE.MathUtils.clamp(dirNorm.y, -1, 1));
+                mesh.rotation.y = yaw;
+                mesh.rotation.x = -pitch;
+                scene.add(mesh);
+            }
+
+            const rail = {
+                mesh,
+                start: start.clone(),
+                end: end.clone(),
+                dir: dirNorm,
+                length,
+                mid,
+                kind,
+                normal,
+                snapRadius: options.snapRadius || (kind === 'ledge' ? 1.4 : 1.14),
+                heightTol: options.heightTol || (kind === 'ledge' ? 0.9 : 0.72),
+                sideCatch: options.sideCatch !== false,
+                arcadeBias: options.arcadeBias || (kind === 'ledge' ? 0.36 : 0.24)
+            };
+            rails.push(rail);
+            return rail;
+        }
+
+        function createRail(x, z, rot, length = 18, height = 1.15, rise = 0) {
+            const railGroup = new THREE.Group();
+            const railBar = makeToonMesh(new THREE.CylinderGeometry(0.08, 0.08, length, 12), GRIND_GREEN, 0.026);
+            railBar.rotation.z = Math.PI / 2;
+            railGroup.add(railBar);
+
+            const leftPost = makeToonMesh(new THREE.BoxGeometry(0.12, Math.max(0.3, height), 0.12), GRIND_GREEN_DARK, 0.018);
+            leftPost.position.set(-length * 0.28, -height * 0.5 + 0.03, 0);
+            railGroup.add(leftPost);
+
+            const rightPostHeight = Math.max(0.3, height + rise * 0.5);
+            const rightPost = makeToonMesh(new THREE.BoxGeometry(0.12, rightPostHeight, 0.12), GRIND_GREEN_DARK, 0.018);
+            rightPost.position.set(length * 0.28, -height * 0.5 + rise * 0.25 + 0.03, 0);
+            railGroup.add(rightPost);
+
+            railGroup.position.set(x, height, z);
+            railGroup.rotation.y = rot;
+            railGroup.rotation.z = Math.atan2(rise, length);
+            railGroup.updateMatrixWorld(true);
+            scene.add(railGroup);
+
+            const start = railGroup.localToWorld(new THREE.Vector3(-length * 0.5, 0, 0));
+            const end = railGroup.localToWorld(new THREE.Vector3(length * 0.5, 0, 0));
+            createGrindLine(start, end, { kind: 'flat', visible: false, snapRadius: 1.28, heightTol: 0.78, arcadeBias: 0.3 });
+            return railGroup;
+        }
+
+        function createVerticalRail(x, z, yBase, height = 16, faceNormal = new THREE.Vector3(1, 0, 0)) {
+            const railGroup = new THREE.Group();
+            const bar = makeToonMesh(new THREE.CylinderGeometry(0.08, 0.08, height, 12), GRIND_GREEN, 0.026);
+            railGroup.add(bar);
+
+            const bracket1 = makeToonMesh(new THREE.BoxGeometry(0.12, 0.12, 0.42), GRIND_GREEN_DARK, 0.016);
+            const bracket2 = makeToonMesh(new THREE.BoxGeometry(0.12, 0.12, 0.42), GRIND_GREEN_DARK, 0.016);
+            const offset = faceNormal.clone().multiplyScalar(0.16);
+            bracket1.position.copy(offset.clone().multiplyScalar(0.5));
+            bracket1.position.y = -height * 0.22;
+            bracket2.position.copy(offset.clone().multiplyScalar(0.5));
+            bracket2.position.y = height * 0.22;
+            if (Math.abs(faceNormal.x) > 0.5) {
+                bracket1.rotation.z = Math.PI / 2;
+                bracket2.rotation.z = Math.PI / 2;
+            } else {
+                bracket1.rotation.x = Math.PI / 2;
+                bracket2.rotation.x = Math.PI / 2;
+            }
+            railGroup.add(bracket1);
+            railGroup.add(bracket2);
+
+            railGroup.position.set(x, yBase + height * 0.5, z);
+            scene.add(railGroup);
+            railGroup.updateMatrixWorld(true);
+
+            const start = railGroup.localToWorld(new THREE.Vector3(0, -height * 0.5, 0));
+            const end = railGroup.localToWorld(new THREE.Vector3(0, height * 0.5, 0));
+            const dir = end.clone().sub(start).normalize();
+            const mid = start.clone().lerp(end, 0.5);
+            rails.push({
+                mesh: railGroup,
+                start,
+                end,
+                dir,
+                length: start.distanceTo(end),
+                mid,
+                kind: 'vertical',
+                normal: faceNormal.clone().normalize(),
+                snapRadius: 1.14,
+                heightTol: 1.86,
+                sideCatch: true,
+                arcadeBias: 0.34
+            });
+            return railGroup;
+        }
+
+        function createWallLedge(px, py, pz, size, faceNormal) {
+            const tangent = Math.abs(faceNormal.x) > 0.5 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+            const half = size * 0.42;
+            const center = new THREE.Vector3(px, py, pz).add(faceNormal.clone().multiplyScalar(size * 0.5 + 0.16));
+            const start = center.clone().add(tangent.clone().multiplyScalar(-half));
+            const end = center.clone().add(tangent.clone().multiplyScalar(half));
+            return createGrindLine(start, end, { kind: 'ledge', normal: faceNormal, snapRadius: 1.52, heightTol: 1.02, arcadeBias: 0.38 });
+        }
+
+        function createBuildingPeg(center, faceNormal, length = 5.2, depth = 1.15, thickness = 0.46) {
+            const onXFace = Math.abs(faceNormal.x) > 0.5;
+            const peg = makeToonMesh(
+                new THREE.BoxGeometry(onXFace ? depth : length, thickness, onXFace ? length : depth),
+                GRIND_GREEN,
+                0.016
+            );
+            peg.position.copy(center).add(faceNormal.clone().multiplyScalar(depth * 0.5));
+            scene.add(peg);
+            walls.push(peg);
+
+            const tangent = onXFace ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+            const railCenter = peg.position.clone().add(faceNormal.clone().multiplyScalar(depth * 0.34)).add(new THREE.Vector3(0, thickness * 0.18, 0));
+            const half = length * 0.46;
+            const start = railCenter.clone().add(tangent.clone().multiplyScalar(-half));
+            const end = railCenter.clone().add(tangent.clone().multiplyScalar(half));
+            createGrindLine(start, end, {
+                kind: 'ledge',
+                normal: faceNormal,
+                snapRadius: 1.88,
+                heightTol: 1.12,
+                arcadeBias: 0.52
+            });
+            return peg;
+        }
+
+        function addBuildingTopLedges(px, pz, size, h) {
+            const y = h - 0.34;
+            const half = size * 0.5 + 0.14;
+            const inset = size * 0.5 - 0.65;
+            createGrindLine(new THREE.Vector3(px - half, y, pz - inset), new THREE.Vector3(px - half, y, pz + inset), {
+                kind: 'ledge', normal: new THREE.Vector3(-1, 0, 0), snapRadius: 1.92, heightTol: 1.14, arcadeBias: 0.56
+            });
+            createGrindLine(new THREE.Vector3(px + half, y, pz - inset), new THREE.Vector3(px + half, y, pz + inset), {
+                kind: 'ledge', normal: new THREE.Vector3(1, 0, 0), snapRadius: 1.92, heightTol: 1.14, arcadeBias: 0.56
+            });
+            createGrindLine(new THREE.Vector3(px - inset, y, pz - half), new THREE.Vector3(px + inset, y, pz - half), {
+                kind: 'ledge', normal: new THREE.Vector3(0, 0, -1), snapRadius: 1.92, heightTol: 1.14, arcadeBias: 0.56
+            });
+            createGrindLine(new THREE.Vector3(px - inset, y, pz + half), new THREE.Vector3(px + inset, y, pz + half), {
+                kind: 'ledge', normal: new THREE.Vector3(0, 0, 1), snapRadius: 1.92, heightTol: 1.14, arcadeBias: 0.56
+            });
+        }
+
+        function addBuildingClimbFeatures(px, pz, size, h) {
+            addBuildingTopLedges(px, pz, size, h);
+
+            const faces = [
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(0, 0, 1),
+                new THREE.Vector3(-1, 0, 0),
+                new THREE.Vector3(0, 0, -1)
+            ];
+            const levels = Math.max(2, Math.min(6, Math.round(h / 18)));
+            const bottomY = Math.min(h - 9, 7.5);
+            const topY = Math.max(bottomY + 5, h - 11);
+
+            for (let i = 0; i < levels; i++) {
+                const t = levels === 1 ? 0.5 : i / (levels - 1);
+                const y = THREE.MathUtils.lerp(bottomY, topY, t);
+                const face = faces[i % faces.length];
+                const tangent = Math.abs(face.x) > 0.5 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+                const tangentOffset = (i % 2 === 0 ? 1 : -1) * Math.min(size * 0.18, 3.6);
+                const center = new THREE.Vector3(px, y, pz)
+                    .add(face.clone().multiplyScalar(size * 0.5 + 0.08))
+                    .add(tangent.clone().multiplyScalar(tangentOffset));
+                createBuildingPeg(center, face, Math.min(6.4, Math.max(4.6, size * 0.28)));
+
+                if (i % 2 === 0) {
+                    const cornerSign = tangentOffset >= 0 ? 1 : -1;
+                    const corner = new THREE.Vector3(px, y + 2.8, pz)
+                        .add(face.clone().multiplyScalar(size * 0.5 + 0.12))
+                        .add(tangent.clone().multiplyScalar((size * 0.5 - 1.2) * cornerSign));
+                    createBuildingPeg(corner, face, 3.8, 1.05, 0.42);
+                }
+            }
+        }
+
+        function addRampLedges(ramp) {
+            ramp.updateMatrixWorld(true);
+            const leftLipA = ramp.localToWorld(new THREE.Vector3(18, 18, 0));
+            const leftLipB = ramp.localToWorld(new THREE.Vector3(18, 18, 30));
+            createGrindLine(leftLipA, leftLipB, { kind: 'ledge', snapRadius: 1.48, heightTol: 0.96, arcadeBias: 0.4 });
+
+            const deckA = ramp.localToWorld(new THREE.Vector3(35, 18, 0));
+            const deckB = ramp.localToWorld(new THREE.Vector3(35, 18, 30));
+            createGrindLine(deckA, deckB, { kind: 'ledge', snapRadius: 1.56, heightTol: 1.02, arcadeBias: 0.42 });
+
+            const sideA1 = ramp.localToWorld(new THREE.Vector3(20, 18, 0));
+            const sideA2 = ramp.localToWorld(new THREE.Vector3(35, 18, 0));
+            createGrindLine(sideA1, sideA2, { kind: 'ledge', snapRadius: 1.34, heightTol: 0.92, arcadeBias: 0.34 });
+
+            const sideB1 = ramp.localToWorld(new THREE.Vector3(20, 18, 30));
+            const sideB2 = ramp.localToWorld(new THREE.Vector3(35, 18, 30));
+            createGrindLine(sideB1, sideB2, { kind: 'ledge', snapRadius: 1.34, heightTol: 0.92, arcadeBias: 0.34 });
+        }
+
+
+        function createBuilding(px, pz, options = {}) {
+            const h = options.height ?? (40 + Math.random() * 80);
+            const size = options.size ?? 20;
+            const color = options.color ?? 0xf7f7f7;
+            const building = makeToonMesh(new THREE.BoxGeometry(size, h, size), color, 0.012);
+            building.position.set(px, h / 2, pz);
+            building.userData.buildingSpec = { size, height: h };
+            scene.add(building);
+            walls.push(building);
+            buildings.push(building);
+            if (options.selectAfterCreate === true) selectedBuilding = building;
+
+            const includeLedge = options.includeLedge !== false;
+            const includeVertical = options.includeVertical !== false;
+            const includeClimbPegs = options.includeClimbPegs !== false;
+
+            if (includeLedge) {
+                const faceOnX = options.faceOnX ?? (Math.random() < 0.5);
+                const sign = options.faceSign ?? (Math.random() < 0.5 ? -1 : 1);
+                const faceNormal = faceOnX ? new THREE.Vector3(sign, 0, 0) : new THREE.Vector3(0, 0, sign);
+                const ledgeHeight = options.ledgeHeight ?? Math.min(h - 4, 3 + Math.random() * Math.max(2, Math.min(12, h - 6)));
+                createWallLedge(px, ledgeHeight, pz, size, faceNormal);
+            }
+
+            if (includeClimbPegs) {
+                addBuildingClimbFeatures(px, pz, size, h);
+            }
+
+            if (includeVertical) {
+                const faceOnX = options.railFaceOnX ?? (Math.random() < 0.5);
+                const sign = options.railFaceSign ?? (Math.random() < 0.5 ? -1 : 1);
+                const yBase = options.railYBase ?? Math.min(h - 12, Math.max(1.2, 1.2 + Math.random() * Math.max(6, h - 24)));
+                const railHeight = options.railHeight ?? Math.min(h - yBase - 1.2, 12 + Math.random() * 12);
+                if (railHeight > 8) {
+                    if (faceOnX) {
+                        const x = px + sign * (size * 0.5 + 0.12);
+                        const z = pz + ((options.railOffsetZ ?? (Math.random() - 0.5)) * 6);
+                        createVerticalRail(x, z, yBase, railHeight, new THREE.Vector3(sign, 0, 0));
+                    } else {
+                        const x = px + ((options.railOffsetX ?? (Math.random() - 0.5)) * 6);
+                        const z = pz + sign * (size * 0.5 + 0.12);
+                        createVerticalRail(x, z, yBase, railHeight, new THREE.Vector3(0, 0, sign));
+                    }
+                }
+            }
+
+            return building;
+        }
+
+        function getSelectedBuildingData() {
+            if (!selectedBuilding || !selectedBuilding.userData || !selectedBuilding.userData.buildingSpec) return null;
+            return selectedBuilding.userData.buildingSpec;
+        }
+
+        function getFaceNormalForIndex(faceIndex) {
+            const faces = [
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(0, 0, 1),
+                new THREE.Vector3(-1, 0, 0),
+                new THREE.Vector3(0, 0, -1)
+            ];
+            return faces[((faceIndex % faces.length) + faces.length) % faces.length].clone();
+        }
+
+        function setBuildingHighlight(building, enabled) {
+            if (!building || !building.material || !building.material.color) return;
+            if (enabled) {
+                if (building.userData.baseColorHex == null) {
+                    building.userData.baseColorHex = building.material.color.getHex();
+                }
+                if (building.material.emissive && building.userData.baseEmissiveHex == null) {
+                    building.userData.baseEmissiveHex = building.material.emissive.getHex();
+                }
+                const outlineMeshBase = building.children?.[0];
+                if (outlineMeshBase?.material?.color && building.userData.baseOutlineHex == null) {
+                    building.userData.baseOutlineHex = outlineMeshBase.material.color.getHex();
+                }
+                building.material.color.setHex(0xffd36b);
+                if (building.material.emissive) {
+                    building.material.emissive.setHex(0x5a3200);
+                }
+                const outlineMeshActive = building.children?.[0];
+                if (outlineMeshActive?.material?.color) {
+                    outlineMeshActive.material.color.setHex(0x241300);
+                }
+            } else {
+                if (building.userData.baseColorHex != null) {
+                    building.material.color.setHex(building.userData.baseColorHex);
+                }
+                if (building.material.emissive) {
+                    building.material.emissive.setHex(building.userData.baseEmissiveHex ?? 0x000000);
+                }
+                const outlineMeshRestore = building.children?.[0];
+                if (outlineMeshRestore?.material?.color) {
+                    outlineMeshRestore.material.color.setHex(building.userData.baseOutlineHex ?? 0x050505);
+                }
+            }
+        }
+
+        function syncBuildingHighlight() {
+            if (!buildMode) {
+                if (highlightedBuilding) {
+                    setBuildingHighlight(highlightedBuilding, false);
+                    highlightedBuilding = null;
+                }
+                return;
+            }
+            if (highlightedBuilding && highlightedBuilding !== selectedBuilding) {
+                setBuildingHighlight(highlightedBuilding, false);
+                highlightedBuilding = null;
+            }
+            if (selectedBuilding && selectedBuilding.parent) {
+                if (highlightedBuilding !== selectedBuilding) {
+                    if (highlightedBuilding) setBuildingHighlight(highlightedBuilding, false);
+                    setBuildingHighlight(selectedBuilding, true);
+                    highlightedBuilding = selectedBuilding;
+                }
+            } else if (highlightedBuilding) {
+                setBuildingHighlight(highlightedBuilding, false);
+                highlightedBuilding = null;
+            }
+        }
+
+        function clearSelectionVisuals() {
+            if (selectedBuildingHelper) {
+                scene.remove(selectedBuildingHelper);
+                selectedBuildingHelper.geometry?.dispose?.();
+                selectedBuildingHelper.material?.dispose?.();
+                selectedBuildingHelper = null;
+            }
+            if (selectedPlacementMarker) {
+                scene.remove(selectedPlacementMarker);
+                disposeSceneObject(selectedPlacementMarker);
+                selectedPlacementMarker = null;
+            }
+        }
+
+        function getSelectedPlacement(buildingOverride = null) {
+            const building = buildingOverride || selectedBuilding;
+            const spec = building?.userData?.buildingSpec;
+            if (!building || !spec) return null;
+            const px = building.position.x;
+            const pz = building.position.z;
+            const size = spec.size;
+            const h = spec.height;
+            const face = getFaceNormalForIndex(selectedBuildFace);
+            const tangent = Math.abs(face.x) > 0.5 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+            const laneFractions = [-0.74, -0.38, 0, 0.38, 0.74];
+            const heightFractions = [0.18, 0.36, 0.58, 0.8];
+            const laneOffset = laneFractions[((selectedBuildLane % BUILD_LANE_NAMES.length) + BUILD_LANE_NAMES.length) % BUILD_LANE_NAMES.length] * Math.max(4.2, size * 0.34);
+            const y = THREE.MathUtils.clamp(h * heightFractions[((selectedBuildHeight % BUILD_HEIGHT_NAMES.length) + BUILD_HEIGHT_NAMES.length) % BUILD_HEIGHT_NAMES.length], 3.4, h - 3.4);
+            const faceCenter = new THREE.Vector3(px, y, pz)
+                .add(face.clone().multiplyScalar(size * 0.5 + 0.12))
+                .add(tangent.clone().multiplyScalar(laneOffset));
+            return { building, spec, px, pz, size, h, face, tangent, laneOffset, y, faceCenter };
+        }
+
+        function updateSelectionVisuals() {
+            clearSelectionVisuals();
+            syncBuildingHighlight();
+            if (!buildMode || !selectedBuilding || !selectedBuilding.parent) return;
+
+            selectedBuildingHelper = new THREE.BoxHelper(selectedBuilding, 0x8cf7b8);
+            scene.add(selectedBuildingHelper);
+
+            const placement = getSelectedPlacement(selectedBuilding);
+            if (!placement) return;
+
+            const marker = new THREE.Group();
+            const plate = new THREE.Mesh(
+                new THREE.CircleGeometry(0.72, 20),
+                new THREE.MeshBasicMaterial({ color: 0x93ffba, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
+            );
+            plate.lookAt(placement.faceCenter.clone().add(placement.face));
+            plate.position.copy(placement.faceCenter).add(placement.face.clone().multiplyScalar(0.2));
+            marker.add(plate);
+
+            const dot = makeToonMesh(new THREE.SphereGeometry(0.2, 10, 10), 0x93ffba, 0.02);
+            dot.position.copy(placement.faceCenter).add(placement.face.clone().multiplyScalar(0.28));
+            marker.add(dot);
+
+            const stem = makeToonMesh(new THREE.BoxGeometry(0.08, 0.08, 1.1), 0x2c9a63, 0.018);
+            stem.position.copy(placement.faceCenter).add(placement.face.clone().multiplyScalar(0.55));
+            const yaw = Math.atan2(placement.face.x, placement.face.z);
+            stem.rotation.y = yaw;
+            marker.add(stem);
+
+            selectedPlacementMarker = marker;
+            scene.add(marker);
+        }
+
+        function createHorizontalWallRail(center, faceNormal, length = 6.2) {
+            const tangent = Math.abs(faceNormal.x) > 0.5 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+            const barCenter = center.clone().add(faceNormal.clone().multiplyScalar(0.28));
+            const start = barCenter.clone().add(tangent.clone().multiplyScalar(-length * 0.5));
+            const end = barCenter.clone().add(tangent.clone().multiplyScalar(length * 0.5));
+            const rail = createGrindLine(start, end, {
+                kind: 'ledge',
+                normal: faceNormal,
+                snapRadius: 1.92,
+                heightTol: 1.1,
+                arcadeBias: 0.56,
+                thickness: 0.13,
+                color: GRIND_GREEN
+            });
+
+            const bracketGeo = new THREE.BoxGeometry(0.16, 0.16, 0.52);
+            const bracket1 = makeToonMesh(bracketGeo, GRIND_GREEN_DARK, 0.016);
+            const bracket2 = makeToonMesh(bracketGeo.clone(), GRIND_GREEN_DARK, 0.016);
+            const edge = Math.max(1.4, length * 0.32);
+            bracket1.position.copy(barCenter).add(tangent.clone().multiplyScalar(-edge)).add(faceNormal.clone().multiplyScalar(-0.12));
+            bracket2.position.copy(barCenter).add(tangent.clone().multiplyScalar(edge)).add(faceNormal.clone().multiplyScalar(-0.12));
+            if (Math.abs(faceNormal.x) > 0.5) {
+                bracket1.rotation.z = Math.PI / 2;
+                bracket2.rotation.z = Math.PI / 2;
+            } else {
+                bracket1.rotation.x = Math.PI / 2;
+                bracket2.rotation.x = Math.PI / 2;
+            }
+            scene.add(bracket1);
+            scene.add(bracket2);
+            return rail;
+        }
+
+        function selectNearestBuilding() {
+            if (!buildings.length) {
+                selectedBuilding = null;
+                updateBuilderUi('No buildings to edit yet');
+                return null;
+            }
+            const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw)).normalize();
+            let best = null;
+            let bestScore = Infinity;
+            for (const building of buildings) {
+                if (!building || !building.parent) continue;
+                const delta = building.position.clone().sub(player.position);
+                const flat = new THREE.Vector3(delta.x, 0, delta.z);
+                const distSq = flat.lengthSq();
+                const flatDir = flat.lengthSq() > 0.001 ? flat.clone().normalize() : new THREE.Vector3();
+                const behindPenalty = flatDir.lengthSq() > 0.001 && flatDir.dot(forward) < -0.2 ? 4200 : 0;
+                const score = distSq + behindPenalty;
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = building;
+                }
+            }
+            selectedBuilding = best;
+            if (freeCamEnabled && best && best.parent) {
+                focusFreeCamOn(best.position.clone().add(new THREE.Vector3(0, (best.userData?.buildingSpec?.height || 20) * 0.22, 0)));
+            }
+            updateBuilderUi(best ? 'Building selected' : 'No buildings to edit yet');
+            return best;
+        }
+
+        function addFeatureToSelectedBuilding(type = 'combo') {
+            const building = selectedBuilding || selectNearestBuilding();
+            const placement = getSelectedPlacement(building);
+            if (!building || !placement) {
+                updateBuilderUi('No building selected');
+                return;
+            }
+
+            const { px, pz, size, h, face, tangent, faceCenter, y } = placement;
+            const railLength = Math.min(7.6, Math.max(5.6, size * 0.34));
+            const comboOffset = Math.min(size * 0.18, 2.6);
+
+            if (type === 'peg' || type === 'combo') {
+                createBuildingPeg(faceCenter.clone(), face, Math.min(6.8, Math.max(4.8, size * 0.3)));
+            }
+            if (type === 'horizontal' || type === 'combo') {
+                createHorizontalWallRail(faceCenter.clone(), face, railLength);
+            }
+            if (type === 'vertical' || type === 'combo') {
+                const railHeight = Math.max(10, Math.min(20, h * 0.46));
+                const railYBase = THREE.MathUtils.clamp(y - railHeight * 0.2, 1.2, h - railHeight - 1.2);
+                createVerticalRail(faceCenter.x, faceCenter.z, railYBase, railHeight, face);
+            }
+            if (type === 'combo') {
+                createWallLedge(px, Math.min(h - 4.2, y + 4.4), pz, size, face);
+                createBuildingPeg(faceCenter.clone().add(tangent.clone().multiplyScalar(comboOffset)).setY(Math.min(h - 3.8, y + 2.8)), face, 4.2, 1.05, 0.42);
+            }
+
+            updateBuilderUi(type === 'combo' ? 'Climb set added to face' : `${type.toUpperCase()} added to face`);
+        }
+
+        function disposeSceneObject(object) {
+            object.traverse(node => {
+                if (node.geometry) node.geometry.dispose?.();
+                if (Array.isArray(node.material)) {
+                    node.material.forEach(mat => mat?.dispose?.());
+                } else if (node.material) {
+                    node.material.dispose?.();
+                }
+            });
+        }
+
+        function clearWorld() {
+            for (const fx of [...sparks, ...impactFx, ...dustFx]) {
+                scene.remove(fx);
+            }
+            sparks = [];
+            impactFx = [];
+            dustFx = [];
+
+            const toRemove = scene.children.filter(obj => !persistentSceneObjects.has(obj));
+            for (const obj of toRemove) {
+                scene.remove(obj);
+                disposeSceneObject(obj);
+            }
+
+            walls = [];
+            slopes = [floorMesh];
+            rails = [];
+            buildings = [];
+            selectedBuilding = null;
+            syncBuildingHighlight();
+            clearSelectionVisuals();
+            if (freeCamEnabled) focusFreeCamOn(player.position.clone().add(new THREE.Vector3(0, 3.6, 0)));
+            activeRail = null;
+            isGrinding = false;
+            isInAir = false;
+            grindCooldown = 0;
+            grindSpeed = 0;
+            grindT = 0;
+            pushBoost = 0;
+            velocity.set(0, 0, 0);
+            yVel = 0;
+            jumps = 0;
+            airSideActionUsed = false;
+            wallKickLock = 0;
+            recentWallKickAssist = 0;
+            trickTimer = 0;
+            trickCooldown = 0;
+            trickName = '';
+            kickAnim = 0;
+            kickType = '';
+            if (playerVisuals) playerVisuals.rotation.set(0, 0, 0);
+            if (boardMesh) boardMesh.rotation.set(0, 0, 0);
+            if (hoodieMesh) hoodieMesh.rotation.set(0, 0, 0);
+        }
+
+        function resetWorldRandomized() {
+            clearWorld();
+            clearBuildHistory();
+            buildWorld();
+            if (freeCamEnabled) {
+                focusFreeCamOn(player.position.clone().add(new THREE.Vector3(0, 3.6, 0)));
+            }
+            updateBuilderUi('Fresh random map loaded');
+        }
+
+        function snapBuildValue(value) {
+            return Math.round(value / 4) * 4;
+        }
+
+        function getPlacementPointInFront(distance = 30) {
+            const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw)).normalize();
+            const point = player.position.clone().add(forward.multiplyScalar(distance));
+            point.x = snapBuildValue(point.x);
+            point.z = snapBuildValue(point.z);
+            point.y = 0;
+            return point;
+        }
+
+        function getPlacementPointFromScreen(clientX, clientY) {
+            const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+            raycaster.setFromCamera(ndc, camera);
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+            const point = new THREE.Vector3();
+            if (raycaster.ray.intersectPlane(plane, point)) {
+                point.x = snapBuildValue(point.x);
+                point.z = snapBuildValue(point.z);
+                point.y = 0;
+                return point;
+            }
+            return getPlacementPointInFront();
+        }
+
+        function placeBuildAssetAt(point) {
+            if (!point) point = getPlacementPointInFront();
+            const dims = getActiveBuildDimensions();
+            let placedObject = null;
+            if (buildAssetType === 'ramp') {
+                placedObject = createRamp(point.x, point.z, buildRotation, {
+                    length: dims.length,
+                    height: dims.height,
+                    depth: Math.max(16, dims.length * 0.88)
+                });
+                trickName = 'PLACED PIPE';
+            } else if (buildAssetType === 'building') {
+                placedObject = createBuilding(point.x, point.z, {
+                    height: dims.height,
+                    size: dims.length,
+                    faceOnX: Math.abs(Math.cos(buildRotation)) > Math.abs(Math.sin(buildRotation)),
+                    faceSign: Math.cos(buildRotation) >= 0 ? 1 : -1,
+                    railFaceOnX: Math.abs(Math.cos(buildRotation + Math.PI * 0.5)) > Math.abs(Math.sin(buildRotation + Math.PI * 0.5)),
+                    railFaceSign: Math.cos(buildRotation + Math.PI * 0.5) >= 0 ? 1 : -1,
+                    includeLedge: true,
+                    includeClimbPegs: true,
+                    includeVertical: true,
+                    selectAfterCreate: true
+                });
+                trickName = 'PLACED BUILDING';
+            } else {
+                placedObject = createRail(
+                    point.x,
+                    point.z,
+                    buildRotation,
+                    dims.length,
+                    dims.height,
+                    THREE.MathUtils.clamp(dims.height * 0.35, 0, dims.length * 0.18)
+                );
+                trickName = 'PLACED RAIL';
+            }
+            trickTimer = 20;
+            if (freeCamEnabled) {
+                const focusTarget = placedObject?.position
+                    ? placedObject.position.clone().add(new THREE.Vector3(0, buildAssetType === 'building' ? (placedObject.userData?.buildingSpec?.height || dims.height) * 0.25 : 4.2, 0))
+                    : point.clone().add(new THREE.Vector3(0, 4.2, 0));
+                focusFreeCamOn(focusTarget);
+            }
+            updateBuilderUi(trickName.replace('PLACED ', '') + ' dropped');
+        }
+
+        function setBuildMode(enabled) {
+            buildMode = !!enabled;
+            if (!buildMode) {
+                clearSelectionVisuals();
+                syncBuildingHighlight();
+                setFreeCam(false);
+            } else if (freeCamEnabled) {
+                focusFreeCamOn((selectedBuilding && selectedBuilding.parent)
+                    ? selectedBuilding.position.clone().add(new THREE.Vector3(0, (selectedBuilding.userData?.buildingSpec?.height || 20) * 0.22, 0))
+                    : player.position.clone().add(new THREE.Vector3(0, 3.6, 0)));
+            }
+            updateBuilderUi(buildMode ? 'Tap the world to place assets' : 'Build mode OFF');
+        }
+
+        function updateBuilderUi(message = '') {
+            const rotReadout = document.getElementById('build-rot-readout');
+            if (rotReadout) rotReadout.textContent = `${Math.round((THREE.MathUtils.euclideanModulo(buildRotation, Math.PI * 2) * 180 / Math.PI) / 15) * 15}°`;
+            const dims = getActiveBuildDimensions();
+            const lengthReadout = document.getElementById('build-length-readout');
+            if (lengthReadout) lengthReadout.textContent = formatBuildDimension(dims.length, buildAssetType, 'length');
+            const placeHeightReadout = document.getElementById('build-place-height-readout');
+            if (placeHeightReadout) placeHeightReadout.textContent = formatBuildDimension(dims.height, buildAssetType, 'height');
+            const toggleBtn = document.getElementById('toggle-build-btn');
+            if (toggleBtn) {
+                toggleBtn.textContent = buildMode ? 'BUILD MODE: ON' : 'BUILD MODE: OFF';
+                toggleBtn.classList.toggle('active', buildMode);
+            }
+            const freeCamBtn = document.getElementById('toggle-freecam-btn');
+            if (freeCamBtn) {
+                freeCamBtn.textContent = freeCamEnabled ? 'FREE CAM: ON' : 'FREE CAM: OFF';
+                freeCamBtn.classList.toggle('active', freeCamEnabled);
+            }
+            const undoBtn = document.getElementById('undo-build-btn');
+            if (undoBtn) undoBtn.disabled = buildUndoStack.length === 0;
+            const redoBtn = document.getElementById('redo-build-btn');
+            if (redoBtn) redoBtn.disabled = buildRedoStack.length === 0;
+            const faceReadout = document.getElementById('build-face-readout');
+            if (faceReadout) faceReadout.textContent = BUILD_FACE_NAMES[((selectedBuildFace % BUILD_FACE_NAMES.length) + BUILD_FACE_NAMES.length) % BUILD_FACE_NAMES.length];
+            const laneReadout = document.getElementById('build-lane-readout');
+            if (laneReadout) laneReadout.textContent = BUILD_LANE_NAMES[((selectedBuildLane % BUILD_LANE_NAMES.length) + BUILD_LANE_NAMES.length) % BUILD_LANE_NAMES.length];
+            const heightReadout = document.getElementById('build-height-readout');
+            if (heightReadout) heightReadout.textContent = BUILD_HEIGHT_NAMES[((selectedBuildHeight % BUILD_HEIGHT_NAMES.length) + BUILD_HEIGHT_NAMES.length) % BUILD_HEIGHT_NAMES.length];
+            const targetReadout = document.getElementById('build-target-readout');
+            if (targetReadout) {
+                if (selectedBuilding && selectedBuilding.parent) {
+                    targetReadout.textContent = `Target: ${Math.round(selectedBuilding.position.x)}, ${Math.round(selectedBuilding.position.z)}`;
+                } else {
+                    targetReadout.textContent = 'Target: none';
+                }
+            }
+            const status = document.getElementById('builder-status');
+            if (status) {
+                const dimsSummary = `L ${formatBuildDimension(dims.length, buildAssetType, 'length')} • H ${formatBuildDimension(dims.height, buildAssetType, 'height')}`;
+                const cameraSummary = freeCamEnabled ? ` • FREE CAM • Z ${Math.round(freeCamDistance)}` : '';
+                status.textContent = message || (buildMode ? `Build mode ON • ${buildAssetType.toUpperCase()} • ${dimsSummary}${cameraSummary}` : `Build mode OFF • ${buildAssetType.toUpperCase()} • ${dimsSummary}`);
+            }
+            document.querySelectorAll('.asset-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.asset === buildAssetType);
+            });
+            updateSelectionVisuals();
+        }
+
+        function buildPlaza() {
+            createRail(0, -8, 0, 18, 1.0, 0);
+            createRail(0, 18, Math.PI / 8, 22, 1.2, 1.4);
+            createRail(-18, 10, Math.PI / 2.7, 20, 1.15, 0.5);
+            createRail(18, 10, -Math.PI / 2.7, 20, 1.15, 0.5);
+
+            createRamp(-14, 0, Math.PI * 0.5);
+            createRamp(28, 16, -Math.PI * 0.55);
+            createRamp(-36, 22, Math.PI * 0.15);
+        }
+
+        function createStartPlatform() {
+            const base = makeToonMesh(new THREE.BoxGeometry(26, 1.2, 18), 0x20252f, 0.026);
+            base.position.set(START_POS.x, 0.6, START_POS.z);
+            scene.add(base);
+            slopes.push(base);
+
+            const inset = makeToonMesh(new THREE.BoxGeometry(20, 0.34, 12), 0xff8d3a, 0.018);
+            inset.position.set(START_POS.x, 1.05, START_POS.z);
+            scene.add(inset);
+            slopes.push(inset);
+
+            const stripeA = makeToonMesh(new THREE.BoxGeometry(1.5, 0.22, 4.2), 0xfff0cc, 0.012);
+            stripeA.position.set(START_POS.x, 1.26, START_POS.z + 2.8);
+            scene.add(stripeA);
+            slopes.push(stripeA);
+
+            const stripeB = makeToonMesh(new THREE.BoxGeometry(3.6, 0.22, 1.5), 0xfff0cc, 0.012);
+            stripeB.position.set(START_POS.x, 1.26, START_POS.z + 5.0);
+            scene.add(stripeB);
+            slopes.push(stripeB);
+
+            const stripeC = makeToonMesh(new THREE.BoxGeometry(5.8, 0.22, 1.2), 0xfff0cc, 0.012);
+            stripeC.position.set(START_POS.x, 1.26, START_POS.z + 6.7);
+            scene.add(stripeC);
+            slopes.push(stripeC);
+
+            const guardL = makeToonMesh(new THREE.BoxGeometry(0.5, 1.5, 18), 0x11161d, 0.015);
+            guardL.position.set(START_POS.x - 13.2, 1.1, START_POS.z);
+            scene.add(guardL);
+            walls.push(guardL);
+
+            const guardR = makeToonMesh(new THREE.BoxGeometry(0.5, 1.5, 18), 0x11161d, 0.015);
+            guardR.position.set(START_POS.x + 13.2, 1.1, START_POS.z);
+            scene.add(guardR);
+            walls.push(guardR);
+
+            const backWall = makeToonMesh(new THREE.BoxGeometry(26, 2.2, 0.5), 0x11161d, 0.015);
+            backWall.position.set(START_POS.x, 1.1, START_POS.z - 9.2);
+            scene.add(backWall);
+            walls.push(backWall);
+        }
+
+        function buildWorld() {
+            buildPlaza();
+            createStartPlatform();
+
+            for (let i = 0; i < 14; i++) {
+                createRamp((Math.random() - 0.5) * 520, (Math.random() - 0.5) * 520, Math.random() * Math.PI * 2);
+            }
+
+            for (let i = 0; i < 16; i++) {
+                createRail(
+                    (Math.random() - 0.5) * 420,
+                    (Math.random() - 0.5) * 420,
+                    Math.random() * Math.PI * 2,
+                    14 + Math.random() * 12,
+                    0.9 + Math.random() * 0.65,
+                    (Math.random() - 0.5) * 1.8
+                );
+            }
+
+            for (let i = 0; i < 40; i++) {
+                const px = (Math.random() - 0.5) * 700;
+                const pz = (Math.random() - 0.5) * 700;
+                createBuilding(px, pz, { includeVertical: true, includeClimbPegs: true });
+            }
+
+            player.position.copy(START_POS);
+            freeCamTarget.set(START_POS.x, START_POS.y + 4, START_POS.z + 12);
+            boardYaw = START_YAW;
+            camYaw = START_YAW;
+            lastCamYaw = START_YAW;
+            player.rotation.y = START_YAW;
+        }
+
+        function setupGestures() {
+            window.addEventListener('touchstart', e => {
+                if (e.target && e.target.closest && e.target.closest('#menu-toggle, #menu-panel, #btn-jump')) return;
+                e.preventDefault();
+                for (let t of e.changedTouches) {
+                    if (buildMode) {
+                        if (freeCamEnabled && t.clientX >= window.innerWidth * 0.5) {
+                            touchData.look.id = t.identifier;
+                            touchData.look.lastX = t.clientX;
+                            touchData.look.lastY = t.clientY;
+                        } else {
+                            touchData.move.id = t.identifier;
+                            touchData.move.startX = t.clientX;
+                            touchData.move.startY = t.clientY;
+                            touchData.move.currentX = t.clientX;
+                            touchData.move.currentY = t.clientY;
+                            touchData.move.lastX = t.clientX;
+                            touchData.move.lastY = t.clientY;
+                            touchData.move.startTime = performance.now();
+                        }
+                        continue;
+                    }
+                    if (t.clientX < window.innerWidth / 2) {
+                        touchData.move.id = t.identifier;
+                        touchData.move.startX = t.clientX;
+                        touchData.move.startY = t.clientY;
+                        touchData.move.currentX = t.clientX;
+                        touchData.move.currentY = t.clientY;
+                        touchData.move.lastX = t.clientX;
+                        touchData.move.lastY = t.clientY;
+                        touchData.move.startTime = performance.now();
+                    } else {
+                        touchData.look.id = t.identifier;
+                        touchData.look.lastX = t.clientX;
+                        touchData.look.lastY = t.clientY;
+                    }
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', e => {
+                if (e.target && e.target.closest && e.target.closest('#menu-toggle, #menu-panel, #btn-jump')) return;
+                e.preventDefault();
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchData.move.id) {
+                        if (buildMode && freeCamEnabled) {
+                            const dx = t.clientX - touchData.move.lastX;
+                            const dy = t.clientY - touchData.move.lastY;
+                            nudgeFreeCamPan(dx, dy);
+                            touchData.move.currentX = t.clientX;
+                            touchData.move.currentY = t.clientY;
+                            touchData.move.lastX = t.clientX;
+                            touchData.move.lastY = t.clientY;
+                        } else {
+                            touchData.move.currentX = t.clientX;
+                            touchData.move.currentY = t.clientY;
+                        }
+                    }
+                    if (((buildMode && freeCamEnabled) || !buildMode) && t.identifier === touchData.look.id) {
+                        const dx = t.clientX - touchData.look.lastX;
+                        const dy = t.clientY - touchData.look.lastY;
+                        camYaw -= dx * 0.007;
+                        camPitch = Math.max(0.1, Math.min(1.2, camPitch + dy * 0.005));
+                        touchData.look.lastX = t.clientX;
+                        touchData.look.lastY = t.clientY;
+                    }
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', e => {
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchData.move.id) {
+                        const dx = t.clientX - touchData.move.startX;
+                        const dy = t.clientY - touchData.move.startY;
+                        const dt = performance.now() - touchData.move.startTime;
+                        const absDx = Math.abs(dx);
+                        const absDy = Math.abs(dy);
+
+                        if (buildMode) {
+                            if (dt < 350 && absDx < 18 && absDy < 18) {
+                                performPlaceBuildAsset(getPlacementPointFromScreen(t.clientX, t.clientY));
+                            }
+                            touchData.move.id = -1;
+                            leanFactor = 0;
+                            continue;
+                        }
+
+                        if (absDx > 42 && absDx > absDy * 1.2 && dt < 320) {
+                            triggerSideAction(dx < 0 ? -1 : 1);
+                        } else if (dy < -24 && !isGrinding) {
+                            const swipeStrength = THREE.MathUtils.clamp(Math.abs(dy) / 130, 0, 1);
+                            const holdCharge = THREE.MathUtils.clamp((dt - 90) / 280, 0, 1);
+                            const pushPower = 0.074 + swipeStrength * 0.044 + holdCharge * 0.014;
+                            pushBoost = Math.min(0.086, pushBoost + 0.018 + swipeStrength * 0.017 + holdCharge * 0.011);
+                            velocity.x += Math.sin(boardYaw) * pushPower;
+                            velocity.z += Math.cos(boardYaw) * pushPower;
+                            kickAnim = Math.max(kickAnim, 0.55);
+                            kickSide = 1;
+                            kickType = 'push';
+                        }
+                        touchData.move.id = -1;
+                        leanFactor = 0;
+                    }
+                    if (t.identifier === touchData.look.id) touchData.look.id = -1;
+                }
+            });
+
+            const jumpBtn = document.getElementById('btn-jump');
+            jumpBtn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                if (!buildMode) triggerJump();
+            }, { passive: false });
+
+            window.addEventListener('click', e => {
+                if (!buildMode) return;
+                if (e.target && e.target.closest && e.target.closest('#menu-toggle, #menu-panel, #btn-jump')) return;
+                performPlaceBuildAsset(getPlacementPointFromScreen(e.clientX, e.clientY));
+            });
+        }
+
+        function triggerJump() {
+            if (isGrinding) {
+                const exitDir = activeRail && activeRail.normal ? activeRail.normal.clone() : new THREE.Vector3(Math.sin(boardYaw), 0, Math.cos(boardYaw));
+                isGrinding = false;
+                activeRail = null;
+                grindCooldown = 12;
+                jumps = 1;
+                isInAir = true;
+                yVel = 0.36;
+                velocity.x += exitDir.x * 0.05 + Math.sin(boardYaw) * 0.05;
+                velocity.z += exitDir.z * 0.05 + Math.cos(boardYaw) * 0.05;
+                kickAnim = 1;
+                kickSide = 1;
+                kickType = 'jump';
+                return;
+            }
+            if (jumps < 2) {
+                jumps++;
+                yVel = 0.34;
+                isInAir = true;
+                kickAnim = 0.78;
+                kickSide = 1;
+                kickType = 'jump';
+            }
+        }
+
+        function findSnapRail(direction = 0) {
+            const side = new THREE.Vector3(Math.cos(boardYaw), 0, -Math.sin(boardYaw)).multiplyScalar(direction || 1);
+            const forward = new THREE.Vector3(Math.sin(boardYaw), 0, Math.cos(boardYaw));
+            const probe = player.position.clone()
+                .add(new THREE.Vector3(0, isInAir ? 0.76 : 0.42, 0))
+                .add(side.clone().multiplyScalar(0.58))
+                .add(forward.clone().multiplyScalar(0.22));
+
+            let best = null;
+            let bestInfo = null;
+            let bestScore = Infinity;
+
+            for (const rail of rails) {
+                const info = closestPointOnSegment(probe, rail.start, rail.end);
+                const offset = probe.clone().sub(info.point);
+                const flatDist = Math.hypot(offset.x, offset.z);
+                const yDist = Math.abs(offset.y);
+                const wallKickBonus = recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.72 : 0;
+                const snapDist = (rail.snapRadius || SIDE_SNAP_DIST) + (rail.kind === 'ledge' ? 0.34 : 0.08) + wallKickBonus;
+                const heightTol = (rail.heightTol || SIDE_SNAP_HEIGHT) + (rail.kind === 'ledge' ? 0.18 : 0.04) + (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.34 : 0);
+
+                if (rail.kind === 'vertical') {
+                    if (!isInAir) continue;
+                    if (flatDist > snapDist || yDist > heightTol) continue;
+                    const wallBias = rail.normal ? Math.max(0, rail.normal.dot(side.clone().normalize())) : 0.35;
+                    const score = flatDist * 0.7 + yDist * 0.06 - wallBias * 0.34 - (rail.arcadeBias || 0);
+                    if (score < bestScore) {
+                        best = rail;
+                        bestInfo = info;
+                        bestScore = score;
+                    }
+                    continue;
+                }
+
+                const railFlatDir = new THREE.Vector3(rail.dir.x, 0, rail.dir.z).normalize();
+                const moveDir = new THREE.Vector3(velocity.x, 0, velocity.z);
+                if (moveDir.lengthSq() < 0.001) moveDir.copy(forward);
+                moveDir.normalize();
+
+                const alignment = Math.abs(moveDir.dot(railFlatDir));
+                const sideBias = rail.sideCatch ? Math.abs(side.dot(railFlatDir)) : 0;
+                const edgeAssist = (info.t < 0.08 || info.t > 0.92) ? 0.12 : 0;
+                if (flatDist > snapDist || yDist > heightTol) continue;
+                if (alignment < (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.0 : 0.02) && sideBias < (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.03 : 0.08)) continue;
+                if (info.t < 0.015 || info.t > 0.985) {
+                    if (flatDist > snapDist * 0.88) continue;
+                }
+
+                const comboBias = recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.36 : 0;
+                const score = flatDist * 0.5 + yDist * 0.22 - Math.max(alignment * 0.36, sideBias * 0.7) - (rail.arcadeBias || 0) - edgeAssist - comboBias;
+                if (score < bestScore) {
+                    best = rail;
+                    bestInfo = info;
+                    bestScore = score;
+                }
+            }
+
+            return best ? { rail: best, info: bestInfo } : null;
+        }
+
+        function attachToRail(rail, info, source = 'flow') {
+            const incomingYVel = yVel;
+            activeRail = rail;
+            grindT = info.t;
+            isGrinding = true;
+            isInAir = false;
+            yVel = 0;
+            jumps = 1;
+            airSideActionUsed = false;
+            grindFxClock = 0;
+
+            const comboCatch = recentWallKickAssist > 0 && source === 'snap' && rail.kind === 'ledge';
+
+            if (rail.kind === 'vertical') {
+                grindMode = 'vertical';
+                grindDir = incomingYVel > 0.06 ? 1 : ((player.position.y < rail.mid.y) ? 1 : -1);
+                grindSpeed = THREE.MathUtils.clamp(Math.max(Math.abs(incomingYVel), 0.22) + (source === 'snap' ? 0.08 : 0), 0.18, 0.42);
+                const point = rail.start.clone().lerp(rail.end, grindT);
+                const n = rail.normal || new THREE.Vector3(1, 0, 0);
+                player.position.set(point.x + n.x * 0.18, point.y - 0.14, point.z + n.z * 0.18);
+                velocity.set(0, 0, 0);
+                boardYaw = Math.atan2(-n.x, -n.z);
+                trickName = source === 'snap' ? 'VERT SNAP' : 'VERT GRIND';
+                if (source === 'snap') spawnPegSnapFx(point.clone().add(new THREE.Vector3(0, 0.14, 0)), n, false);
+            } else {
+                grindMode = 'flat';
+                const along = velocity.dot(rail.dir);
+                grindDir = along >= 0 ? 1 : -1;
+                const horizontalSpeed = Math.max(0.18, Math.hypot(velocity.x, velocity.z));
+                const boostFactor = rail.kind === 'ledge' ? 1.16 : 1.12;
+                grindSpeed = THREE.MathUtils.clamp(horizontalSpeed * (source === 'snap' ? boostFactor : 1.02), 0.24, 0.6);
+                const snapPoint = rail.start.clone().lerp(rail.end, grindT);
+                player.position.set(snapPoint.x, snapPoint.y - (rail.kind === 'ledge' ? 0.02 : 0.04), snapPoint.z);
+                velocity.copy(rail.dir).multiplyScalar(grindSpeed * grindDir);
+                if (comboCatch) {
+                    trickName = 'WALL PEG CATCH';
+                } else {
+                    trickName = source === 'snap' ? (rail.kind === 'ledge' ? 'LEDGE SNAP' : 'RAIL SNAP') : (rail.kind === 'ledge' ? 'LEDGE GRIND' : 'GRINDING');
+                }
+                if (source === 'snap') {
+                    spawnPegSnapFx(snapPoint.clone().add(new THREE.Vector3(0, 0.12, 0)), rail.normal || new THREE.Vector3(0, 1, 0), comboCatch);
+                }
+            }
+
+            if (comboCatch) recentWallKickAssist = 0;
+            trickTimer = source === 'snap' ? (comboCatch ? 22 : 16) : Math.max(trickTimer, 8);
+        }
+
+        function tryWallKick(direction) {
+            if (!isInAir || wallKickLock > 0) return false;
+
+            const side = new THREE.Vector3(Math.cos(boardYaw), 0, -Math.sin(boardYaw)).multiplyScalar(direction);
+            const forward = new THREE.Vector3(Math.sin(boardYaw), 0, Math.cos(boardYaw));
+            const chest = player.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+            const probe = chest.clone().add(side.clone().multiplyScalar(1.06)).add(forward.clone().multiplyScalar(0.06));
+            let best = null;
+            let bestScore = Infinity;
+
+            for (const wall of walls) {
+                const box = new THREE.Box3().setFromObject(wall).expandByScalar(0.2);
+                if (chest.y < box.min.y - 0.3 || chest.y > box.max.y + 0.2) continue;
+
+                const closest = new THREE.Vector3(
+                    THREE.MathUtils.clamp(probe.x, box.min.x, box.max.x),
+                    THREE.MathUtils.clamp(chest.y, box.min.y, box.max.y),
+                    THREE.MathUtils.clamp(probe.z, box.min.z, box.max.z)
+                );
+                const delta = probe.clone().sub(closest);
+                const flatDist = Math.hypot(delta.x, delta.z);
+                if (flatDist > 0.72) continue;
+
+                const normal = Math.abs(delta.x) > Math.abs(delta.z)
+                    ? new THREE.Vector3(Math.sign(delta.x) || direction || 1, 0, 0)
+                    : new THREE.Vector3(0, 0, Math.sign(delta.z) || 1);
+
+                const alignment = Math.max(0, normal.dot(side.clone().normalize()));
+                const score = flatDist - alignment * 0.28;
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = { normal };
+                }
+            }
+
+            if (!best) return false;
+
+            const kickDir = best.normal.clone().multiplyScalar(0.26).add(forward.clone().multiplyScalar(0.12)).add(side.clone().multiplyScalar(0.08));
+            velocity.x = kickDir.x;
+            velocity.z = kickDir.z;
+            yVel = Math.max(yVel, 0.47);
+            isInAir = true;
+            jumps = 0;
+            wallKickLock = 6;
+            recentWallKickAssist = 60;
+            grindCooldown = 4;
+            trickCooldown = 4;
+            trickTimer = 22;
+            trickName = direction < 0 ? 'LEFT WALL JUMP' : 'RIGHT WALL JUMP';
+            trickFlip += direction < 0 ? Math.PI * 0.45 : -Math.PI * 0.45;
+            trickSpin += direction < 0 ? 0.08 : -0.08;
+            trickTilt = direction < 0 ? -0.42 : 0.42;
+            kickAnim = 1;
+            kickSide = direction;
+            kickType = 'wall';
+            spawnWallKickFx(player.position.clone().add(new THREE.Vector3(0, 1.02, 0)), best.normal, direction);
+            return true;
+        }
+
+        function triggerSideAction(direction) {
+            if (isGrinding || trickCooldown > 0) return;
+
+            const snapRail = findSnapRail(direction);
+            if (snapRail && (!isInAir || yVel <= 0.18 || snapRail.rail.kind === 'vertical')) {
+                kickAnim = 0.9;
+                kickSide = direction;
+                kickType = snapRail.rail.kind === 'vertical' ? 'wall' : 'snap';
+                attachToRail(snapRail.rail, snapRail.info, 'snap');
+                return;
+            }
+
+            if (tryWallKick(direction)) return;
+
+            const side = new THREE.Vector3(Math.cos(boardYaw), 0, -Math.sin(boardYaw)).multiplyScalar(direction);
+            const forward = new THREE.Vector3(Math.sin(boardYaw), 0, Math.cos(boardYaw));
+
+            if (!isInAir) {
+                isInAir = true;
+                yVel = Math.max(yVel, 0.28);
+                velocity.x += side.x * 0.17 + forward.x * 0.03;
+                velocity.z += side.z * 0.17 + forward.z * 0.03;
+                trickCooldown = 10;
+                trickTimer = 18;
+                trickName = direction < 0 ? 'LEFT SIDE POP' : 'RIGHT SIDE POP';
+                trickFlip += direction < 0 ? Math.PI * 0.65 : -Math.PI * 0.65;
+                trickTilt = direction < 0 ? -0.28 : 0.28;
+                kickAnim = 0.9;
+                kickSide = direction;
+                kickType = 'side';
+                airSideActionUsed = true;
+                return;
+            }
+
+            if (airSideActionUsed) return;
+            airSideActionUsed = true;
+            trickCooldown = 10;
+            trickTimer = 14;
+            trickName = direction < 0 ? 'LEFT AIR STYLE' : 'RIGHT AIR STYLE';
+            trickFlip += direction < 0 ? Math.PI * 0.45 : -Math.PI * 0.45;
+            trickSpin += direction < 0 ? 0.05 : -0.05;
+            trickTilt = direction < 0 ? -0.12 : 0.12;
+            kickAnim = 0.52;
+            kickSide = direction;
+            kickType = 'air';
+        }
+
+        function closestPointOnSegment(point, a, b) {
+            const ab = b.clone().sub(a);
+            const ap = point.clone().sub(a);
+            const abLenSq = ab.lengthSq();
+            const t = abLenSq > 0 ? THREE.MathUtils.clamp(ap.dot(ab) / abLenSq, 0, 1) : 0;
+            return { t, point: a.clone().addScaledVector(ab, t) };
+        }
+
+        function tryStartGrind() {
+            if (isGrinding || grindCooldown > 0 || velocity.length() < 0.14) return;
+
+            const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+            if (horizontalSpeed < 0.12) return;
+
+            const probe = player.position.clone().add(new THREE.Vector3(0, isInAir ? 0.72 : 0.32, 0));
+            let bestRail = null;
+            let bestDist = Infinity;
+            let bestInfo = null;
+
+            for (const rail of rails) {
+                if (rail.kind === 'vertical') continue;
+                const info = closestPointOnSegment(probe, rail.start, rail.end);
+                const offset = probe.clone().sub(info.point);
+                const flatDist = Math.hypot(offset.x, offset.z);
+                const yDist = Math.abs(offset.y);
+                const velFlat = new THREE.Vector3(velocity.x, 0, velocity.z);
+                const railDir = new THREE.Vector3(rail.dir.x, 0, rail.dir.z).normalize();
+                const moveAlignment = velFlat.lengthSq() > 0.001 ? Math.abs(velFlat.normalize().dot(railDir)) : 0;
+                const boardForward = new THREE.Vector3(Math.sin(boardYaw), 0, Math.cos(boardYaw));
+                const boardAlignment = Math.abs(boardForward.dot(railDir));
+                const heading = Math.max(moveAlignment, boardAlignment * 0.92);
+                const sideCatch = Math.abs(new THREE.Vector3(Math.cos(boardYaw), 0, -Math.sin(boardYaw)).dot(railDir));
+                const descendingBonus = isInAir && yVel < 0 ? Math.min(0.24, Math.abs(yVel) * 1.2) : 0;
+                const ledgeBonus = rail.kind === 'ledge' ? 0.28 : 0.08;
+                const wallKickBonus = recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.68 : 0;
+                const snapDist = (rail.snapRadius || GRIND_SNAP_DIST) + (isInAir ? 0.2 : 0.28) + ledgeBonus + wallKickBonus;
+                const heightTol = (rail.heightTol || GRIND_HEIGHT_TOLERANCE) + descendingBonus + (rail.kind === 'ledge' ? 0.12 : 0.02) + (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.28 : 0);
+                const railNormalAssist = rail.normal ? Math.max(0, rail.normal.dot(new THREE.Vector3(Math.cos(boardYaw), 0, -Math.sin(boardYaw)))) : 0;
+
+                if (flatDist > snapDist || yDist > heightTol) continue;
+                if (heading < (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.0 : 0.07) && sideCatch < (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.05 : 0.12) && railNormalAssist < (recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.0 : 0.08)) continue;
+
+                const endEase = (info.t < 0.1 || info.t > 0.9) ? 0.12 : 0;
+                const comboBias = recentWallKickAssist > 0 && rail.kind === 'ledge' ? 0.42 : 0;
+                const score = flatDist * 0.42 + yDist * 0.2 - heading * 0.22 - sideCatch * 0.34 - railNormalAssist * 0.2 - (rail.arcadeBias || 0) - endEase - comboBias;
+                if (score < bestDist) {
+                    bestDist = score;
+                    bestRail = rail;
+                    bestInfo = info;
+                }
+            }
+
+            if (!bestRail) return;
+            attachToRail(bestRail, bestInfo, 'flow');
+        }
+
+
+        function resolveWallSlide(nextPos) {
+            const boxSize = new THREE.Vector3(1.72, 2.05, 1.72);
+            const centerOffset = new THREE.Vector3(0, 1, 0);
+            const adjusted = nextPos.clone();
+            let hit = false;
+
+            for (let pass = 0; pass < 5; pass++) {
+                const pBox = new THREE.Box3().setFromCenterAndSize(adjusted.clone().add(centerOffset), boxSize);
+                let collided = false;
+
+                for (const wall of walls) {
+                    const wallBox = new THREE.Box3().setFromObject(wall);
+                    if (!pBox.intersectsBox(wallBox)) continue;
+
+                    const overlapX = Math.min(pBox.max.x, wallBox.max.x) - Math.max(pBox.min.x, wallBox.min.x);
+                    const overlapZ = Math.min(pBox.max.z, wallBox.max.z) - Math.max(pBox.min.z, wallBox.min.z);
+                    if (overlapX <= 0 || overlapZ <= 0) continue;
+
+                    collided = true;
+                    hit = true;
+
+                    const pCenter = adjusted.clone().add(centerOffset);
+                    if (overlapX < overlapZ) {
+                        const pushDir = pCenter.x >= (wallBox.min.x + wallBox.max.x) * 0.5 ? 1 : -1;
+                        adjusted.x += (overlapX + 0.08) * pushDir;
+                        velocity.x = Math.max(0, velocity.x * 0.12) * pushDir;
+                    } else {
+                        const pushDir = pCenter.z >= (wallBox.min.z + wallBox.max.z) * 0.5 ? 1 : -1;
+                        adjusted.z += (overlapZ + 0.08) * pushDir;
+                        velocity.z = Math.max(0, velocity.z * 0.12) * pushDir;
+                    }
+                    break;
+                }
+
+                if (!collided) break;
+            }
+
+            return { position: adjusted, hit };
+        }
+
+        function updateGrinding() {
+            if (!isGrinding || !activeRail) return false;
+
+            if (activeRail.kind === 'vertical') {
+                if (grindDir > 0) {
+                    grindSpeed = Math.max(0, grindSpeed - 0.0065);
+                    if (grindSpeed <= 0.08) {
+                        grindDir = -1;
+                        grindSpeed = 0.16;
+                    }
+                } else {
+                    grindSpeed = Math.min(0.32, grindSpeed + 0.0025);
+                }
+
+                grindT += grindDir * (grindSpeed / Math.max(0.001, activeRail.length));
+
+                if (grindT <= 0 || grindT >= 1) {
+                    grindT = THREE.MathUtils.clamp(grindT, 0, 1);
+                    const endPoint = activeRail.start.clone().lerp(activeRail.end, grindT);
+                    const n = activeRail.normal || new THREE.Vector3(1, 0, 0);
+                    player.position.set(endPoint.x + n.x * 0.2, endPoint.y - 0.14, endPoint.z + n.z * 0.2);
+                    velocity.set(n.x * 0.18, 0, n.z * 0.18);
+                    pushBoost = Math.max(pushBoost, 0.035);
+                    isGrinding = false;
+                    activeRail = null;
+                    grindCooldown = 8;
+                    isInAir = true;
+                    yVel = grindDir > 0 ? 0.24 : 0.12;
+                    kickAnim = 0.82;
+                    kickSide = n.x !== 0 ? -Math.sign(n.x) : Math.sign(n.z);
+                    kickType = 'wall';
+                    return false;
+                }
+
+                const point = activeRail.start.clone().lerp(activeRail.end, grindT);
+                const n = activeRail.normal || new THREE.Vector3(1, 0, 0);
+                player.position.set(point.x + n.x * 0.2, point.y - 0.14, point.z + n.z * 0.2);
+                velocity.set(0, 0, 0);
+                boardYaw = Math.atan2(-n.x, -n.z);
+                player.rotation.y = boardYaw;
+                playerVisuals.rotation.x = THREE.MathUtils.lerp(playerVisuals.rotation.x, -0.04, 0.2);
+                playerVisuals.rotation.z = THREE.MathUtils.lerp(playerVisuals.rotation.z, 0.2 * (n.x !== 0 ? Math.sign(n.x) : -Math.sign(n.z)), 0.22);
+            } else {
+                const grindCap = activeRail.kind === 'ledge' ? 0.56 : 0.53;
+                grindSpeed = THREE.MathUtils.clamp(grindSpeed * 0.9988 + 0.0015, 0.22, grindCap);
+                grindT += grindDir * (grindSpeed / Math.max(0.001, activeRail.length));
+
+                if (grindT <= 0 || grindT >= 1) {
+                    grindT = THREE.MathUtils.clamp(grindT, 0, 1);
+                    const wasLedge = activeRail.kind === 'ledge';
+                    const railDir = activeRail.dir.clone();
+                    const endPoint = activeRail.start.clone().lerp(activeRail.end, grindT);
+                    player.position.set(endPoint.x, endPoint.y - (wasLedge ? 0.02 : 0.04), endPoint.z);
+                    velocity.copy(railDir).multiplyScalar(grindSpeed * grindDir * (wasLedge ? 1.24 : 1.18));
+                    pushBoost = Math.max(pushBoost, wasLedge ? 0.05 : 0.04);
+                    isGrinding = false;
+                    activeRail = null;
+                    grindCooldown = 7;
+                    isInAir = true;
+                    yVel = wasLedge ? 0.14 : 0.12;
+                    return false;
+                }
+
+                const point = activeRail.start.clone().lerp(activeRail.end, grindT);
+                player.position.set(point.x, point.y - (activeRail.kind === 'ledge' ? 0.02 : 0.04), point.z);
+                velocity.copy(activeRail.dir).multiplyScalar(grindSpeed * grindDir);
+
+                const facing = activeRail.dir.clone().multiplyScalar(grindDir);
+                boardYaw = Math.atan2(facing.x, facing.z);
+                player.rotation.y = boardYaw;
+                playerVisuals.rotation.x = THREE.MathUtils.lerp(playerVisuals.rotation.x, 0.12, 0.22);
+                playerVisuals.rotation.z = THREE.MathUtils.lerp(playerVisuals.rotation.z, -0.16 * grindDir, 0.18);
+            }
+
+            grindFxClock += 1;
+            if (grindFxClock % 5 === 0) {
+                const point = activeRail.start.clone().lerp(activeRail.end, grindT);
+                const spark = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.05, 6, 6),
+                    new THREE.MeshBasicMaterial({ color: activeRail.kind === 'vertical' ? 0xffbf48 : 0xff9a2e })
+                );
+                spark.position.copy(point).add(new THREE.Vector3((Math.random() - 0.5) * 0.14, -0.04, (Math.random() - 0.5) * 0.14));
+                spark.userData.life = 12;
+                spark.userData.vel = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.008 + Math.random() * 0.018, (Math.random() - 0.5) * 0.04);
+                scene.add(spark);
+                sparks.push(spark);
+            }
+            return true;
+        }
+
+        function updateSparks() {
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                const spark = sparks[i];
+                spark.position.add(spark.userData.vel);
+                spark.userData.life -= 1;
+                spark.scale.multiplyScalar(0.96);
+                if (spark.userData.life <= 0) {
+                    scene.remove(spark);
+                    sparks.splice(i, 1);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            let angleDiff = camYaw - boardYaw;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            boardYaw += angleDiff * ALIGN_SPEED;
+
+            let camDelta = camYaw - lastCamYaw;
+            while (camDelta < -Math.PI) camDelta += Math.PI * 2;
+            while (camDelta > Math.PI) camDelta -= Math.PI * 2;
+            lastCamYaw = camYaw;
+
+            if (wallKickLock > 0) wallKickLock -= 1;
+            if (recentWallKickAssist > 0) recentWallKickAssist -= 1;
+            if (trickCooldown > 0) trickCooldown -= 1;
+            if (trickTimer > 0) trickTimer -= 1;
+            trickFlip = THREE.MathUtils.lerp(trickFlip, 0, trickTimer > 0 ? 0.12 : 0.18);
+            trickSpin = THREE.MathUtils.lerp(trickSpin, 0, trickTimer > 0 ? 0.1 : 0.18);
+            trickTilt = THREE.MathUtils.lerp(trickTilt, 0, 0.18);
+            kickAnim = THREE.MathUtils.lerp(kickAnim, 0, kickType === 'wall' ? 0.12 : 0.18);
+
+            if (boardMesh) {
+                boardMesh.rotation.z = trickFlip;
+                boardMesh.rotation.y = trickSpin;
+            }
+            if (hoodieMesh) {
+                hoodieMesh.rotation.y = trickSpin * 0.18;
+                hoodieMesh.rotation.z = trickTilt * 0.4;
+            }
+            if (leftLegMesh && rightLegMesh) {
+                leftLegMesh.rotation.x = 0;
+                leftLegMesh.rotation.z = 0;
+                rightLegMesh.rotation.x = 0;
+                rightLegMesh.rotation.z = 0;
+                const activeLeg = kickSide < 0 ? leftLegMesh : rightLegMesh;
+                const idleLeg = kickSide < 0 ? rightLegMesh : leftLegMesh;
+                activeLeg.rotation.x = -kickAnim * (kickType === 'wall' ? 1.55 : 1.1);
+                activeLeg.rotation.z = kickSide * kickAnim * (kickType === 'wall' ? 0.9 : 0.55);
+                idleLeg.rotation.x = kickAnim * 0.16;
+            }
+
+            const flatSpeedNow = Math.hypot(velocity.x, velocity.z);
+            const camLeanTarget = THREE.MathUtils.clamp(camDelta * 16 * THREE.MathUtils.clamp(flatSpeedNow / 0.34, 0, 1), -0.2, 0.2);
+            turnLean = THREE.MathUtils.lerp(turnLean, camLeanTarget, 0.14);
+
+            if (touchData.move.id !== -1) {
+                const dx = touchData.move.currentX - touchData.move.startX;
+                const normalizedLean = Math.max(-1, Math.min(1, dx / 80));
+                leanFactor = normalizedLean * MAX_LEAN;
+                if (!isGrinding) {
+                    const visualLean = -normalizedLean * 0.26 - turnLean;
+                    playerVisuals.rotation.z = THREE.MathUtils.lerp(playerVisuals.rotation.z, visualLean, 0.12);
+                    const flatSpeed = Math.hypot(velocity.x, velocity.z);
+                    const carveStrength = THREE.MathUtils.clamp(flatSpeed / 0.42, 0, 1);
+                    if (!isInAir && flatSpeed > 0.03) {
+                        boardYaw -= leanFactor * (0.022 + carveStrength * 0.033);
+                    }
+                }
+            } else if (!isGrinding) {
+                leanFactor = THREE.MathUtils.lerp(leanFactor, 0, 0.1);
+                playerVisuals.rotation.z = THREE.MathUtils.lerp(playerVisuals.rotation.z, -turnLean, 0.1);
+            }
+
+            player.rotation.y = boardYaw + leanFactor * 0.7;
+
+            if (grindCooldown > 0) grindCooldown -= 1;
+            updateSparks();
+            updateImpactFx();
+            updateDustFx();
+
+            const statusUi = document.getElementById('status-ui');
+            const wasAirborne = isInAir;
+            const landingVelocity = Math.abs(yVel);
+            if (updateGrinding()) {
+                statusUi.innerText = trickName || 'GRINDING';
+                if (playerShadow) playerShadow.visible = false;
+            } else {
+                const speed = velocity.length();
+                const rollingFriction = speed > 0.24 ? 0.9949 : 0.9934;
+                velocity.multiplyScalar(rollingFriction);
+
+                if (!isGrinding && !isInAir) {
+                    const flatSpeed = Math.hypot(velocity.x, velocity.z);
+                    if (flatSpeed > 0.02) {
+                        let travelYaw = Math.atan2(velocity.x, velocity.z);
+                        let yawDiff = boardYaw - travelYaw;
+                        while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                        while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                        travelYaw += yawDiff * 0.11;
+                        velocity.x = Math.sin(travelYaw) * flatSpeed;
+                        velocity.z = Math.cos(travelYaw) * flatSpeed;
+                    }
+                }
+
+                if (!isInAir && pushBoost > 0 && speed < TOP_SPEED) {
+                    const drive = Math.min(PUSH_DRIVE, pushBoost);
+                    pushBoost = Math.max(0, pushBoost - drive * 0.92 - 0.00034);
+                    velocity.x += Math.sin(boardYaw) * drive;
+                    velocity.z += Math.cos(boardYaw) * drive;
+                } else {
+                    pushBoost = Math.max(0, pushBoost * 0.9 - 0.001);
+                }
+
+                const flatSpeed = Math.hypot(velocity.x, velocity.z);
+                if (!isInAir && flatSpeed > TOP_SPEED) {
+                    const damp = TOP_SPEED / flatSpeed;
+                    velocity.x *= damp;
+                    velocity.z *= damp;
+                }
+
+                const moveNext = player.position.clone().add(velocity);
+                const wallResolve = resolveWallSlide(moveNext);
+                player.position.copy(wallResolve.position);
+                if (wallResolve.hit) {
+                    velocity.multiplyScalar(0.9);
+                    pushBoost = Math.min(pushBoost, 0.028);
+                }
+
+                raycaster.set(
+                    new THREE.Vector3(player.position.x, player.position.y + 10, player.position.z),
+                    new THREE.Vector3(0, -1, 0)
+                );
+                const intersect = raycaster.intersectObjects(slopes, false);
+                let floorY = 0;
+                if (intersect.length > 0) floorY = intersect[0].point.y;
+                if (playerShadow) {
+                    const heightAboveGround = Math.max(0, player.position.y - floorY);
+                    const shadowScale = 1.05 + Math.min(1.45, heightAboveGround * 0.2);
+                    const shadowOpacity = Math.max(0.08, 0.24 - heightAboveGround * 0.012);
+                    playerShadow.visible = true;
+                    playerShadow.position.set(player.position.x, floorY + 0.045, player.position.z);
+                    playerShadow.scale.set(shadowScale, shadowScale, 1);
+                    playerShadow.material.opacity = shadowOpacity;
+                }
+
+                if (isInAir || player.position.y > floorY + 0.1) {
+                    player.position.y += yVel;
+                    yVel += GRAVITY;
+                    playerVisuals.rotation.x += (jumps === 2 ? 0.24 : 0.14);
+                    tryStartGrind();
+                    if (!isGrinding && player.position.y <= floorY) {
+                        player.position.y = floorY;
+                        yVel = 0;
+                        jumps = 0;
+                        isInAir = false;
+                        airSideActionUsed = false;
+                        playerVisuals.rotation.x = 0;
+                        if (wasAirborne || landingVelocity > 0.03) {
+                            spawnLandingDust(player.position.clone(), Math.min(2.4, 1.1 + landingVelocity * 3.0 + velocity.length() * 0.95));
+                        }
+                    }
+                } else {
+                    player.position.y = floorY;
+                    airSideActionUsed = false;
+                    tryStartGrind();
+                    if (!isGrinding && floorY > 0.8 && velocity.length() > 0.34) {
+                        isInAir = true;
+                        jumps = 1;
+                        yVel = velocity.length() * 0.82;
+                    }
+                }
+
+                if (!isGrinding) {
+                    if (trickTimer > 0 && trickName) {
+                        statusUi.innerText = trickName;
+                    } else {
+                        statusUi.innerText = velocity.length() > 0.18 ? 'FLOW' : (pushBoost > 0.06 ? 'PUSHING' : '');
+                    }
+                }
+            }
+
+            if (buildMode && freeCamEnabled) {
+                velocity.multiplyScalar(0.82);
+                pushBoost = 0;
+            }
+
+            const camDist = buildMode && freeCamEnabled ? freeCamDistance : (isGrinding ? 17 : 16);
+            const camFocus = buildMode && freeCamEnabled
+                ? freeCamTarget
+                : player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+            const goalX = camFocus.x - Math.sin(camYaw) * camDist * Math.cos(camPitch);
+            const goalY = camFocus.y + Math.sin(camPitch) * camDist + (buildMode && freeCamEnabled ? 1.5 : 3);
+            const goalZ = camFocus.z - Math.cos(camYaw) * camDist * Math.cos(camPitch);
+
+            camera.position.lerp(new THREE.Vector3(goalX, goalY, goalZ), buildMode && freeCamEnabled ? 0.18 : 0.1);
+            camera.lookAt(camFocus.x, camFocus.y, camFocus.z);
+
+            topHeightBest = Math.max(topHeightBest, Math.max(0, player.position.y));
+            if (isInAir) {
+                airTimeCurrent += 1 / 60;
+                if (airTimeCurrent > airTimeBest) airTimeBest = airTimeCurrent;
+            } else if (!wasAirborne) {
+                airTimeCurrent = 0;
+            }
+
+            document.getElementById('speed-ui').innerText = `${Math.floor(velocity.length() * 300)} KM/H`;
+            const airUi = document.getElementById('air-ui');
+            airUi.innerText = isInAir
+                ? `AIR ${airTimeCurrent.toFixed(2)}S • BEST ${airTimeBest.toFixed(2)}S`
+                : `BEST AIR ${airTimeBest.toFixed(2)}S`;
+            const heightUi = document.getElementById('height-ui');
+            if (heightUi) {
+                const currentHeight = Math.max(0, player.position.y);
+                heightUi.innerText = isInAir
+                    ? `HEIGHT ${currentHeight.toFixed(1)}M • TOP ${topHeightBest.toFixed(1)}M`
+                    : `TOP HEIGHT ${topHeightBest.toFixed(1)}M`;
+            }
+
+            syncBuildingHighlight();
+            if (selectedBuildingHelper) selectedBuildingHelper.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
